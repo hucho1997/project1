@@ -479,6 +479,90 @@ def get_catchable_pokemon_set(version_ids):
     return result
 
 
+def get_regions_for_versions(version_ids):
+    """선택한 버전들이 속한 지방 목록"""
+    conn = get_conn()
+    cur = conn.cursor()
+    placeholders = ','.join('?' * len(version_ids))
+    cur.execute(f'''
+        SELECT DISTINCT r.id, r.identifier,
+            COALESCE(rn_ko.name, r.identifier)
+        FROM versions v
+        JOIN version_groups vg ON v.version_group_id = vg.id
+        JOIN version_group_regions vgr ON vg.id = vgr.version_group_id
+        JOIN regions r ON vgr.region_id = r.id
+        LEFT JOIN region_names rn_ko ON r.id = rn_ko.region_id AND rn_ko.local_language_id = {LANG_KO}
+        WHERE v.id IN ({placeholders})
+        ORDER BY CAST(r.id AS INTEGER)
+    ''', [str(v) for v in version_ids])
+    result = [(int(r[0]), r[1], r[2]) for r in cur.fetchall()]
+    conn.close()
+    return result
+
+
+def get_locations_for_region(region_id, version_ids):
+    """특정 지방에서 선택한 버전에 encounter가 있는 location 목록"""
+    conn = get_conn()
+    cur = conn.cursor()
+    placeholders = ','.join('?' * len(version_ids))
+    cur.execute(f'''
+        SELECT DISTINCT l.id,
+            COALESCE(ln_ko.name, ln_en.name, l.identifier)
+        FROM locations l
+        JOIN location_areas la ON l.id = la.location_id
+        JOIN encounters e ON la.id = e.location_area_id
+        LEFT JOIN location_names ln_ko ON l.id = ln_ko.location_id AND ln_ko.local_language_id = {LANG_KO}
+        LEFT JOIN location_names ln_en ON l.id = ln_en.location_id AND ln_en.local_language_id = {LANG_EN}
+        WHERE l.region_id = ? AND e.version_id IN ({placeholders})
+        ORDER BY COALESCE(ln_ko.name, ln_en.name, l.identifier)
+    ''', [str(region_id)] + [str(v) for v in version_ids])
+    result = [(int(r[0]), r[1]) for r in cur.fetchall()]
+    conn.close()
+    return result
+
+
+def get_pokemon_at_location(location_id, version_ids):
+    """특정 맵에서 출현하는 포켓몬 목록 (버전별, 방법별)"""
+    conn = get_conn()
+    cur = conn.cursor()
+    placeholders = ','.join('?' * len(version_ids))
+    cur.execute(f'''
+        SELECT DISTINCT
+            CAST(e.pokemon_id AS INTEGER),
+            v.identifier,
+            em.identifier,
+            COALESCE(psn.name, ps.identifier),
+            COALESCE(psn_en.name, ps.identifier),
+            MIN(CAST(e.min_level AS INTEGER)),
+            MAX(CAST(e.max_level AS INTEGER))
+        FROM encounters e
+        JOIN encounter_slots es ON e.encounter_slot_id = es.id
+        JOIN encounter_methods em ON es.encounter_method_id = em.id
+        JOIN versions v ON e.version_id = v.id
+        JOIN pokemon p ON e.pokemon_id = p.id
+        JOIN pokemon_species ps ON p.species_id = ps.id
+        LEFT JOIN pokemon_species_names psn ON ps.id = psn.pokemon_species_id AND psn.local_language_id = {LANG_KO}
+        LEFT JOIN pokemon_species_names psn_en ON ps.id = psn_en.pokemon_species_id AND psn_en.local_language_id = {LANG_EN}
+        JOIN location_areas la ON e.location_area_id = la.id
+        WHERE la.location_id = ? AND e.version_id IN ({placeholders})
+        GROUP BY e.pokemon_id, v.identifier, em.identifier
+        ORDER BY CAST(ps.id AS INTEGER), v.identifier
+    ''', [str(location_id)] + [str(v) for v in version_ids])
+    result = []
+    for r in cur.fetchall():
+        result.append({
+            'pokemon_id': r[0],
+            'version': r[1],
+            'method': r[2],
+            'name_ko': r[3],
+            'name_en': r[4],
+            'min_level': r[5],
+            'max_level': r[6],
+        })
+    conn.close()
+    return result
+
+
 def get_exclusive_pokemon(version_ids_a, version_ids_b):
     """version_ids_a에만 출현하고 version_ids_b에는 없는 포켓몬"""
     conn = get_conn()

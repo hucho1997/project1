@@ -8,6 +8,8 @@ from db_query import (
     get_pokemon_basic, get_evolution_chain, get_encounter_locations,
     get_level_up_moves, get_machine_moves, get_selected_version_ids,
     get_catchable_pokemon_set, get_method_ko,
+    get_regions_for_versions, get_locations_for_region,
+    get_pokemon_at_location,
 )
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -153,12 +155,15 @@ def show_pokemon_list(setup):
 
         print(f'#{dex_num:>4}  {basic["name_ko"]:<10} {type_str:<15}  {catchable}')
 
-    print(f'\n포켓몬 번호를 입력하면 상세 정보를 봅니다. (q: 종료)')
+    print(f'\n포켓몬 번호: 상세 정보 | m: 맵별 출현 | q: 종료')
 
     while True:
         cmd = input('\n> ').strip()
         if cmd.lower() == 'q':
             break
+        if cmd.lower() == 'm':
+            show_map_browser(setup)
+            continue
         if cmd.isdigit():
             target_id = int(cmd)
             # dex_num으로 찾기
@@ -294,6 +299,88 @@ def format_evolution_chain(chain, current_id):
         branches = [format_with_condition(c) for c in children]
         line += ' / '.join(branches)
         print(f'  {line}')
+
+
+# ─── 4. 맵별 출현 포켓몬 ───
+
+def show_map_browser(setup):
+    """맵 선택 → 출현 포켓몬 표시"""
+    version_ids = setup['version_ids']
+    regions = get_regions_for_versions(version_ids)
+
+    if not regions:
+        print('선택한 게임에 맵 데이터가 없습니다.')
+        return
+
+    # 지방 선택
+    print_header('맵별 출현 포켓몬')
+    print('\n[지방 선택]')
+    for i, (rid, ident, name) in enumerate(regions, 1):
+        print(f'  [{i}] {name}')
+
+    choice = input('선택: ').strip()
+    if not choice.isdigit() or int(choice) < 1 or int(choice) > len(regions):
+        print('잘못된 선택입니다.')
+        return
+
+    region_id, region_ident, region_name = regions[int(choice) - 1]
+
+    # 맵 목록
+    locations = get_locations_for_region(region_id, version_ids)
+    if not locations:
+        print(f'{region_name} 지방에 출현 데이터가 없습니다.')
+        return
+
+    print_subheader(f'{region_name} 지방 맵 목록')
+    for i, (lid, lname) in enumerate(locations, 1):
+        print(f'  [{i:>3}] {lname}')
+
+    print(f'\n맵 번호 입력 | b: 지방 선택으로 | q: 도감으로')
+
+    while True:
+        cmd = input('\n맵> ').strip()
+        if cmd.lower() == 'q':
+            return
+        if cmd.lower() == 'b':
+            show_map_browser(setup)
+            return
+        if not cmd.isdigit():
+            continue
+
+        loc_idx = int(cmd)
+        if loc_idx < 1 or loc_idx > len(locations):
+            print('잘못된 번호입니다.')
+            continue
+
+        location_id, location_name = locations[loc_idx - 1]
+        pokemon_list = get_pokemon_at_location(location_id, version_ids)
+
+        if not pokemon_list:
+            print(f'{location_name}에 출현 데이터가 없습니다.')
+            continue
+
+        print_subheader(f'{location_name} 출현 포켓몬')
+
+        # 포켓몬별로 그룹핑
+        grouped = {}
+        for p in pokemon_list:
+            key = (p['pokemon_id'], p['name_ko'])
+            if key not in grouped:
+                grouped[key] = []
+            grouped[key].append(p)
+
+        print(f'{"이름":<12} {"버전":<14} {"방법":<12} {"레벨":>5}')
+        print('-' * 50)
+
+        for (pid, name_ko), entries in grouped.items():
+            first = True
+            for e in entries:
+                display_name = name_ko if first else ''
+                lv_str = f'{e["min_level"]}-{e["max_level"]}' if e['min_level'] != e['max_level'] else str(e['min_level'])
+                print(f'{display_name:<12} {e["version"]:<14} {get_method_ko(e["method"]):<12} {lv_str:>5}')
+                first = False
+
+        print(f'\n총 {len(grouped)}종')
 
 
 # ─── 메인 ───
