@@ -1,0 +1,6 @@
+# SQLite DB (빌드 산출물, CSV에서 재생성 가능)
+db/*.db
+
+# Python
+__pycache__/
+*.pyc
