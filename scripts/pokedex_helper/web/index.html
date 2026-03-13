@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pokédex</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 상단 바 -->
+    <header class="top-bar">
+        <button class="btn-menu" id="btnMenu">
+            <span></span><span></span><span></span>
+        </button>
+        <h1 class="title">Pokédex</h1>
+        <button class="btn-search" id="btnSearch">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="10.5" cy="10.5" r="7"/>
+                <line x1="15.5" y1="15.5" x2="21" y2="21"/>
+            </svg>
+        </button>
+    </header>
+
+    <!-- 사이드 메뉴 -->
+    <div class="menu-overlay hidden" id="menuOverlay"></div>
+    <nav class="side-menu" id="sideMenu">
+        <div class="menu-header">설정</div>
+        <div class="menu-section">
+            <div class="menu-label">보기</div>
+            <div class="view-toggle">
+                <button class="view-btn active" data-view="grid" id="viewGrid">아이콘</button>
+                <button class="view-btn" data-view="list" id="viewList">리스트</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 검색/필터 패널 -->
+    <div class="filter-overlay hidden" id="filterOverlay"></div>
+    <div class="filter-panel hidden" id="filterPanel">
+        <div class="filter-top">
+            <button class="filter-btn-search" id="filterApply">검색</button>
+            <button class="filter-btn-reset" id="filterResetAll">전체 초기화</button>
+        </div>
+
+        <!-- 이름/번호 검색 -->
+        <div class="filter-search-input">
+            <input type="text" id="filterNameInput" placeholder="이름 또는 번호 검색">
+        </div>
+
+        <!-- 세대 (항상 펼침) -->
+        <div class="filter-group open" data-always-open="true">
+            <div class="filter-title">
+                <span class="filter-title-text">세대</span>
+                <button class="filter-reset" data-group="gen">↺</button>
+            </div>
+            <div class="filter-body">
+                <div class="chip-group" id="genChips"></div>
+            </div>
+        </div>
+
+        <!-- 도감 (항상 펼침) -->
+        <div class="filter-group open" data-always-open="true">
+            <div class="filter-title">
+                <span class="filter-title-text">도감</span>
+                <button class="filter-reset" data-group="dex">↺</button>
+            </div>
+            <div class="filter-body">
+                <select id="dexSelect" class="filter-select">
+                    <option value="national">전국도감</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 타입 (항상 펼침) -->
+        <div class="filter-group open" data-always-open="true">
+            <div class="filter-title">
+                <span class="filter-title-text">타입</span>
+                <button class="filter-reset" data-group="type">↺</button>
+            </div>
+            <div class="filter-body">
+                <div class="chip-group" id="typeChips"></div>
+            </div>
+        </div>
+
+        <!-- 알그룹 (접힘) -->
+        <div class="filter-group">
+            <div class="filter-title">
+                <span class="filter-title-text" data-toggle>알그룹</span>
+                <button class="filter-reset" data-group="egggroup">↺</button>
+            </div>
+            <div class="filter-body">
+                <div class="chip-group" id="eggGroupChips"></div>
+            </div>
+        </div>
+
+        <!-- 특성 (접힘) -->
+        <div class="filter-group">
+            <div class="filter-title">
+                <span class="filter-title-text" data-toggle>특성</span>
+                <button class="filter-reset" data-group="ability">↺</button>
+            </div>
+            <div class="filter-body">
+                <input type="text" id="abilityInput" class="filter-text-input" placeholder="특성 이름 검색">
+            </div>
+        </div>
+
+        <!-- 종족값 (접힘) -->
+        <div class="filter-group">
+            <div class="filter-title">
+                <span class="filter-title-text" data-toggle>종족값</span>
+                <button class="filter-reset" data-group="stats">↺</button>
+            </div>
+            <div class="filter-body">
+                <div class="stat-filter-grid">
+                    <div class="stat-filter-row">
+                        <span class="stat-filter-label">HP</span>
+                        <input type="number" class="stat-input" data-stat="hp" data-bound="min" placeholder="최소">
+                        <span class="stat-filter-sep">~</span>
+                        <input type="number" class="stat-input" data-stat="hp" data-bound="max" placeholder="최대">
+                    </div>
+                    <div class="stat-filter-row">
+                        <span class="stat-filter-label">공격</span>
+                        <input type="number" class="stat-input" data-stat="attack" data-bound="min" placeholder="최소">
+                        <span class="stat-filter-sep">~</span>
+                        <input type="number" class="stat-input" data-stat="attack" data-bound="max" placeholder="최대">
+                    </div>
+                    <div class="stat-filter-row">
+                        <span class="stat-filter-label">방어</span>
+                        <input type="number" class="stat-input" data-stat="defense" data-bound="min" placeholder="최소">
+                        <span class="stat-filter-sep">~</span>
+                        <input type="number" class="stat-input" data-stat="defense" data-bound="max" placeholder="최대">
+                    </div>
+                    <div class="stat-filter-row">
+                        <span class="stat-filter-label">특공</span>
+                        <input type="number" class="stat-input" data-stat="sp-attack" data-bound="min" placeholder="최소">
+                        <span class="stat-filter-sep">~</span>
+                        <input type="number" class="stat-input" data-stat="sp-attack" data-bound="max" placeholder="최대">
+                    </div>
+                    <div class="stat-filter-row">
+                        <span class="stat-filter-label">특방</span>
+                        <input type="number" class="stat-input" data-stat="sp-defense" data-bound="min" placeholder="최소">
+                        <span class="stat-filter-sep">~</span>
+                        <input type="number" class="stat-input" data-stat="sp-defense" data-bound="max" placeholder="최대">
+                    </div>
+                    <div class="stat-filter-row">
+                        <span class="stat-filter-label">스피드</span>
+                        <input type="number" class="stat-input" data-stat="speed" data-bound="min" placeholder="최소">
+                        <span class="stat-filter-sep">~</span>
+                        <input type="number" class="stat-input" data-stat="speed" data-bound="max" placeholder="최대">
+                    </div>
+                    <div class="stat-filter-row stat-total">
+                        <span class="stat-filter-label">합계</span>
+                        <input type="number" class="stat-input" data-stat="total" data-bound="min" placeholder="최소">
+                        <span class="stat-filter-sep">~</span>
+                        <input type="number" class="stat-input" data-stat="total" data-bound="max" placeholder="최대">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 노력치 (접힘) -->
+        <div class="filter-group">
+            <div class="filter-title">
+                <span class="filter-title-text" data-toggle>노력치</span>
+                <button class="filter-reset" data-group="ev">↺</button>
+            </div>
+            <div class="filter-body">
+                <div class="chip-group" id="evChips"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 포켓몬 그리드 -->
+    <main class="pokemon-grid" id="pokemonGrid"></main>
+
+    <!-- 포켓몬 상세 (오버레이) -->
+    <div class="detail-overlay hidden" id="detailOverlay">
+        <div class="detail-panel" id="detailPanel"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

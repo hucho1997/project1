@@ -1,5 +1,7 @@
 # SQLite DB (빌드 산출물, CSV에서 재생성 가능)
 db/*.db
+db/*.db-shm
+db/*.db-wal
 
 # Python
 __pycache__/

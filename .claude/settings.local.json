@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(gh auth:*)",
+      "Bash(git config:*)",
+      "Bash(winget install:*)",
+      "Bash(export PATH=\"/c/Program Files/GitHub CLI:$PATH\")",
+      "Bash(gh --version)",
+      "Bash(for file:*)",
+      "Bash(do curl:*)",
+      "Bash(echo \"OK: $file\")",
+      "Bash(echo \"FAIL: $file\")",
+      "Bash(done)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//d/claude/00_personal/01/data/csv/**)",
+      "Bash(python scripts/build_db.py)",
+      "Bash(gh repo:*)",
+      "Bash(gh api:*)",
+      "Read(//tmp/**)",
+      "Bash(\"d:/claude/00_personal/01/tmp_csv_all.txt\")",
+      "Bash(python -c \":*)",
+      "Bash(pip install:*)",
+      "Bash(export KAGGLE_API_TOKEN=\"KGAT_94fed4d296956fdcc3c8436752b85b0f\")",
+      "Bash(kaggle datasets:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(python cli.py)",
+      "WebFetch(domain:pokemondb.net)",
+      "WebFetch(domain:podic.kr)",
+      "Bash(start \"\" \"d:/claude/00_personal/01/scripts/pokedex_helper/web/index.html\")",
+      "Bash(ls -1 d:/claude/00_personal/01/data/csv/*.csv)",
+      "Bash(python scripts/pokedex_helper/export_json.py)",
+      "Bash(python -m http.server 8000)",
+      "Bash(ipconfig)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 22720 //F)"
+    ]
+  }
+}
