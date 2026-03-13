@@ -904,7 +904,11 @@ function showDetail(p, autoGen) {
                 const targetId = parseInt(el.dataset.evoId);
                 if (targetId === p.id) return;
                 const targetPokemon = allPokemon.find(pk => pk.id === targetId);
-                if (targetPokemon) showDetail(targetPokemon, autoGen);
+                if (targetPokemon) {
+                    const activeBtn = detailPanel.querySelector('.gen-tabs .tab-btn.active');
+                    const currentGen = activeBtn ? parseInt(activeBtn.dataset.gen) : autoGen;
+                    showDetail(targetPokemon, currentGen);
+                }
             };
         });
     }
