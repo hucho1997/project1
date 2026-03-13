@@ -924,6 +924,67 @@ body.no-scroll {
     border-bottom-color: var(--accent);
 }
 
+/* ─── 리전폼 토글 ─── */
+.region-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.region-btn {
+    background: var(--bg-card);
+    border: 1px solid #333;
+    color: var(--text-dim);
+    padding: 4px 12px;
+    border-radius: 14px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.region-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-dim);
+}
+
+/* ─── 메가진화 ─── */
+.mega-section {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #333;
+}
+.mega-link {
+    display: inline-block;
+    color: #bb86fc;
+    font-size: 13px;
+    cursor: pointer;
+    margin-right: 12px;
+    padding: 2px 0;
+}
+.mega-link:active {
+    opacity: 0.7;
+}
+
+/* ─── 메가 상세 돌아가기 ─── */
+.mega-back-btn {
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 6px 0 12px;
+}
+.mega-back-btn:active {
+    color: var(--text);
+}
+
+/* ─── 리전 전용 진화 ─── */
+.regional-evo-note {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+}
+.regional-evo-note .evo-name {
+    color: #4fc3f7;
+}
+
 /* 데이터 없음 */
 .no-data {
     font-size: 13px;

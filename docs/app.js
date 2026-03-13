@@ -198,6 +198,8 @@ let dexData = {};
 let statsPast = {};
 let abilitiesPast = {};
 let typesPast = {};
+let formsData = {};
+let regionalEvos = {};
 
 // ─── 상태 ───
 let currentView = 'grid';
@@ -221,7 +223,7 @@ async function init() {
     filteredPokemon = [...allPokemon];
     renderGrid();
 
-    const [evo, enc, mov, dex, sp, ap, tp] = await Promise.all([
+    const [evo, enc, mov, dex, sp, ap, tp, fm, re] = await Promise.all([
         loadJSON('data/evolution_chains.json'),
         loadJSON('data/encounters.json'),
         loadJSON('data/moves.json'),
@@ -229,6 +231,8 @@ async function init() {
         loadJSON('data/stats_past.json'),
         loadJSON('data/abilities_past.json'),
         loadJSON('data/types_past.json'),
+        loadJSON('data/forms.json'),
+        loadJSON('data/regional_evos.json'),
     ]);
     evolutionChains = evo;
     encounterData = enc;
@@ -237,6 +241,8 @@ async function init() {
     statsPast = sp;
     abilitiesPast = ap;
     typesPast = tp;
+    formsData = fm;
+    regionalEvos = re;
 
     buildDexTree();
 }
@@ -405,6 +411,13 @@ function closeFilterPanel() {
 btnSearch.onclick = openFilterPanel;
 filterOverlay.onclick = closeFilterPanel;
 $('#filterClose').onclick = closeFilterPanel;
+
+filterNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        applyFilters();
+        closeFilterPanel();
+    }
+});
 
 document.addEventListener('touchmove', (e) => {
     if (!document.body.classList.contains('no-scroll')) return;
@@ -743,28 +756,27 @@ function buildEncountersForGen(pokemonId, gen) {
     return hasData ? html : '<div class="no-data">이 세대의 출현 데이터 없음</div>';
 }
 
-// ─── 세대별 전체 컨텐츠 (타입+특성+종족값+노력치+기술+출현) ───
-function buildAllGenContent(p, gen) {
-    // 타입
-    const types = getTypesForGen(p.pid, gen, p.types);
-    const typeBadges = types.map(t =>
+// ─── 종족값/특성/타입 렌더링 헬퍼 ───
+function renderTypeBadges(types) {
+    return types.map(t =>
         `<span class="type-badge type-${t}">${TYPE_KO[t] || t}</span>`
     ).join('');
+}
 
-    // 특성
-    const { abilities, hidden } = getAbilitiesForGen(p.pid, gen, p.abilities, p.hiddenAbility || null);
-    let abilityRows = abilities.map(a =>
+function renderAbilityRows(abilities, hidden) {
+    let rows = abilities.map(a =>
         `<tr><td>${a}</td><td></td></tr>`
     ).join('');
     if (hidden) {
-        abilityRows += `<tr class="ability-hidden"><td>${hidden} (숨겨진 특성)</td><td></td></tr>`;
+        rows += `<tr class="ability-hidden"><td>${hidden} (숨겨진 특성)</td><td></td></tr>`;
     }
+    return rows;
+}
 
-    // 종족값
-    const stats = getStatsForGen(p.pid, gen, p.stats);
+function renderStatRows(stats) {
     const statOrder = ['hp', 'attack', 'defense', 'sp-attack', 'sp-defense', 'speed'];
     const total = statOrder.reduce((sum, s) => sum + (stats[s] || 0), 0);
-    const statRows = statOrder.map(s => {
+    const rows = statOrder.map(s => {
         const val = stats[s] || 0;
         const pct = Math.min(val / 160 * 100, 100);
         const color = val >= 100 ? '#63bc5a' : val >= 60 ? '#f4d23c' : '#e53935';
@@ -778,6 +790,50 @@ function buildAllGenContent(p, gen) {
             </div>
         `;
     }).join('');
+    return { rows, total };
+}
+
+// ─── 리전폼 이름 매핑 ───
+const REGION_NAMES = {
+    'alola': '알로라', 'galar': '가라르', 'hisui': '히스이', 'paldea': '팔데아',
+};
+
+// ─── 세대별 전체 컨텐츠 (타입+특성+종족값+노력치+기술+출현) ───
+function buildAllGenContent(p, gen, activeForm) {
+    // activeForm: null(원종) 또는 폼 객체 {pid, form, types, stats, abilities, ...}
+    const isRegional = activeForm && activeForm.introGen;
+    const usePid = isRegional ? activeForm.pid : p.pid;
+
+    // 타입
+    let types;
+    if (isRegional) {
+        types = activeForm.types;
+    } else {
+        types = getTypesForGen(p.pid, gen, p.types);
+    }
+
+    // 특성
+    let abilities, hidden;
+    if (isRegional) {
+        abilities = activeForm.abilities;
+        hidden = activeForm.hiddenAbility || null;
+    } else {
+        const abData = getAbilitiesForGen(p.pid, gen, p.abilities, p.hiddenAbility || null);
+        abilities = abData.abilities;
+        hidden = abData.hidden;
+    }
+
+    // 종족값
+    let stats;
+    if (isRegional) {
+        stats = activeForm.stats;
+    } else {
+        stats = getStatsForGen(p.pid, gen, p.stats);
+    }
+
+    const typeBadges = renderTypeBadges(types);
+    const abilityRows = renderAbilityRows(abilities, hidden);
+    const { rows: statRows, total } = renderStatRows(stats);
 
     // 노력치 (세대 무관, 현재 값 사용)
     const evParts = [];
@@ -790,14 +846,61 @@ function buildAllGenContent(p, gen) {
 
     // 진화 (세대 필터 적용)
     const chain = findEvolutionChain(p.id);
-    const evoHtml = renderEvolutionChain(chain, p.id, gen);
+    let evoHtml = renderEvolutionChain(chain, p.id, gen);
+
+    // 리전폼 토글
+    const speciesForms = formsData[String(p.id)] || [];
+    const regionalForms = speciesForms.filter(f => f.introGen && f.introGen <= gen);
+    let regionToggleHtml = '';
+    if (regionalForms.length > 0) {
+        const buttons = [`<button class="region-btn${!isRegional ? ' active' : ''}" data-form="">원종</button>`];
+        regionalForms.forEach(f => {
+            const regionKey = f.form.split('-')[0];
+            const label = REGION_NAMES[regionKey] || f.form;
+            const isActive = isRegional && activeForm.pid === f.pid;
+            buttons.push(`<button class="region-btn${isActive ? ' active' : ''}" data-form="${f.pid}">${label}</button>`);
+        });
+        regionToggleHtml = `<div class="region-toggle">${buttons.join('')}</div>`;
+    }
+
+    // 메가진화 (6세대 이상에서만)
+    const megaForms = gen >= 6 ? speciesForms.filter(f =>
+        f.form && f.form.startsWith('mega')
+    ) : [];
+    let megaHtml = '';
+    if (megaForms.length > 0) {
+        megaHtml = '<div class="mega-section">';
+        megaForms.forEach(f => {
+            const name = f.name || `메가${p.name}`;
+            megaHtml += `<span class="mega-link" data-mega-pid="${f.pid}">${name}</span>`;
+        });
+        megaHtml += '</div>';
+    }
+
+    // 리전 전용 진화
+    const rEvos = regionalEvos[String(p.id)] || [];
+    const filteredREvos = rEvos.filter(e => e.gen <= gen);
+    let revoHtml = '';
+    if (filteredREvos.length > 0 && !isRegional) {
+        revoHtml = '<div class="regional-evo-note">';
+        filteredREvos.forEach(e => {
+            const pk = allPokemon.find(pk => pk.id === e.id);
+            if (pk) {
+                revoHtml += `<span class="evo-name" data-evo-id="${e.id}">→ ${e.name} (리전폼 진화)</span>`;
+            }
+        });
+        revoHtml += '</div>';
+    }
 
     let html = '';
     html += `<div class="detail-types">${typeBadges}</div>`;
 
     html += '<div class="detail-section">';
     html += '<div class="detail-section-title">진화</div>';
+    html += regionToggleHtml;
     html += evoHtml;
+    html += megaHtml;
+    html += revoHtml;
     html += '</div>';
 
     html += '<div class="detail-section">';
@@ -817,12 +920,12 @@ function buildAllGenContent(p, gen) {
 
     html += '<div class="detail-section">';
     html += '<div class="detail-section-title">포획 위치</div>';
-    html += buildEncountersForGen(p.id, gen);
+    html += buildEncountersForGen(isRegional ? usePid : p.id, gen);
     html += '</div>';
 
     html += '<div class="detail-section">';
     html += '<div class="detail-section-title">기술</div>';
-    html += buildMovesForGen(p.id, gen);
+    html += buildMovesForGen(isRegional ? usePid : p.id, gen);
     html += '</div>';
 
     return html;
@@ -883,7 +986,8 @@ function showDetail(p, autoGen) {
     }
 
     // 세대별 컨텐츠
-    const genContentHtml = defaultGen ? buildAllGenContent(p, defaultGen) : '<div class="no-data">데이터 없음</div>';
+    let currentForm = null; // 현재 선택된 리전폼
+    const genContentHtml = defaultGen ? buildAllGenContent(p, defaultGen, null) : '<div class="no-data">데이터 없음</div>';
 
     detailPanel.innerHTML = `
         <div class="detail-header">
@@ -899,18 +1003,52 @@ function showDetail(p, autoGen) {
         </div>
     `;
 
+    function getActiveGen() {
+        const activeBtn = detailPanel.querySelector('.gen-tabs .tab-btn.active');
+        return activeBtn ? parseInt(activeBtn.dataset.gen) : autoGen;
+    }
+
+    function rebuildContent() {
+        const gen = getActiveGen();
+        const content = document.getElementById('genContent');
+        content.innerHTML = buildAllGenContent(p, gen, currentForm);
+        bindGenContent(content);
+    }
+
     function bindGenContent(container) {
         bindVersionTabs(container);
+
+        // 진화 체인 클릭
         container.querySelectorAll('.evo-name[data-evo-id]').forEach(el => {
             el.onclick = () => {
                 const targetId = parseInt(el.dataset.evoId);
                 if (targetId === p.id) return;
                 const targetPokemon = allPokemon.find(pk => pk.id === targetId);
-                if (targetPokemon) {
-                    const activeBtn = detailPanel.querySelector('.gen-tabs .tab-btn.active');
-                    const currentGen = activeBtn ? parseInt(activeBtn.dataset.gen) : autoGen;
-                    showDetail(targetPokemon, currentGen);
+                if (targetPokemon) showDetail(targetPokemon, getActiveGen());
+            };
+        });
+
+        // 리전폼 토글
+        container.querySelectorAll('.region-btn').forEach(btn => {
+            btn.onclick = () => {
+                const formPid = btn.dataset.form;
+                if (formPid === '') {
+                    currentForm = null;
+                } else {
+                    const speciesForms = formsData[String(p.id)] || [];
+                    currentForm = speciesForms.find(f => f.pid === parseInt(formPid)) || null;
                 }
+                rebuildContent();
+            };
+        });
+
+        // 메가진화 클릭 → 새 상세 패널(메가 데이터)
+        container.querySelectorAll('.mega-link').forEach(el => {
+            el.onclick = () => {
+                const megaPid = parseInt(el.dataset.megaPid);
+                const speciesForms = formsData[String(p.id)] || [];
+                const megaForm = speciesForms.find(f => f.pid === megaPid);
+                if (megaForm) showMegaDetail(p, megaForm, getActiveGen());
             };
         });
     }
@@ -920,10 +1058,12 @@ function showDetail(p, autoGen) {
         btn.onclick = () => {
             detailPanel.querySelectorAll('.gen-tabs .tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            // 세대 변경 시 리전폼이 해당 세대에 존재하는지 확인
             const gen = parseInt(btn.dataset.gen);
-            const content = document.getElementById('genContent');
-            content.innerHTML = buildAllGenContent(p, gen);
-            bindGenContent(content);
+            if (currentForm && currentForm.introGen && currentForm.introGen > gen) {
+                currentForm = null; // 해당 세대에 없으면 원종으로 복귀
+            }
+            rebuildContent();
         };
     });
 
@@ -942,6 +1082,60 @@ function showDetail(p, autoGen) {
     detailOverlay.onclick = (e) => {
         if (e.target === detailOverlay) closeDetail();
     };
+}
+
+// ─── 메가진화 상세 패널 ───
+function showMegaDetail(basePokemon, megaForm, gen) {
+    const typeBadges = renderTypeBadges(megaForm.types);
+    const abilityRows = renderAbilityRows(megaForm.abilities, megaForm.hiddenAbility || null);
+    const { rows: statRows, total } = renderStatRows(megaForm.stats);
+
+    // 기술 (메가의 pid로 조회, 없으면 원종 데이터)
+    const movesHtml = buildMovesForGen(megaForm.pid, gen) !== '<div class="no-data">이 세대의 기술 데이터 없음</div>'
+        ? buildMovesForGen(megaForm.pid, gen)
+        : buildMovesForGen(basePokemon.id, gen);
+
+    detailPanel.innerHTML = `
+        <div class="detail-header">
+            <div class="detail-header-info">
+                <span class="detail-header-num">#${String(basePokemon.id).padStart(4, '0')}</span>${megaForm.name}
+            </div>
+            <button class="detail-close-btn" id="detailClose">&times;</button>
+        </div>
+        <div class="detail-body">
+            <div class="mega-back-btn" id="megaBack">← ${basePokemon.name}(으)로 돌아가기</div>
+            <div class="detail-types">${typeBadges}</div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">특성</div>
+                <table class="ability-table"><tbody>${abilityRows}</tbody></table>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">종족값 (합계: ${total})</div>
+                ${statRows}
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">기술</div>
+                ${movesHtml}
+            </div>
+        </div>
+    `;
+
+    bindVersionTabs(detailPanel);
+
+    $('#megaBack').onclick = () => showDetail(basePokemon, gen);
+    const closeDetail = () => {
+        detailOverlay.classList.add('hidden');
+        document.body.classList.remove('no-scroll');
+    };
+    $('#detailClose').onclick = closeDetail;
+    detailOverlay.onclick = (e) => {
+        if (e.target === detailOverlay) closeDetail();
+    };
+
+    detailPanel.scrollTop = 0;
 }
 
 // ─── 사이드 메뉴 ───

@@ -231,7 +231,7 @@ def export_evolution_chains():
 
 
 def export_encounters():
-    """버전별 출현 데이터"""
+    """버전별 출현 데이터 (기본폼: species_id 키, 비기본폼: pokemon_id 키)"""
     print('출현 데이터 추출 중...')
     conn = get_conn()
     cur = conn.cursor()
@@ -239,6 +239,8 @@ def export_encounters():
     cur.execute('''
         SELECT DISTINCT
             CAST(p.species_id AS INTEGER) as species_id,
+            CAST(p.id AS INTEGER) as pokemon_id,
+            CAST(p.is_default AS INTEGER) as is_default,
             CAST(e.version_id AS INTEGER) as version_id,
             v.identifier as version_name,
             COALESCE(ln_ko.name, ln_en.name, l.identifier) as location_name,
@@ -252,20 +254,23 @@ def export_encounters():
         JOIN pokemon p ON e.pokemon_id = p.id
         LEFT JOIN location_names ln_ko ON l.id = ln_ko.location_id AND ln_ko.local_language_id = ?
         LEFT JOIN location_names ln_en ON l.id = ln_en.location_id AND ln_en.local_language_id = ?
-        ORDER BY species_id, version_id, location_name
+        ORDER BY species_id, pokemon_id, version_id, location_name
     ''', (str(LANG_KO), str(LANG_EN)))
 
     encounters = {}
     for r in cur.fetchall():
         species_id = r[0]
-        key = str(species_id)
+        pokemon_id = r[1]
+        is_default = r[2]
+        # 기본폼 → species_id 키, 비기본폼 → pokemon_id 키
+        key = str(species_id) if is_default else str(pokemon_id)
         if key not in encounters:
             encounters[key] = {}
-        ver_name = r[2]
+        ver_name = r[4]
         if ver_name not in encounters[key]:
             encounters[key][ver_name] = []
 
-        entry = {'loc': r[3], 'method': r[4]}
+        entry = {'loc': r[5], 'method': r[6]}
         if entry not in encounters[key][ver_name]:
             encounters[key][ver_name].append(entry)
 
@@ -281,13 +286,15 @@ def export_moves():
     conn = get_conn()
     cur = conn.cursor()
 
-    # 기본 폼 pokemon_id → species_id 매핑
+    # pokemon_id → species_id 매핑 + 기본폼 여부
     cur.execute('''
-        SELECT MIN(CAST(id AS INTEGER)), CAST(species_id AS INTEGER)
-        FROM pokemon GROUP BY species_id
+        SELECT CAST(id AS INTEGER), CAST(species_id AS INTEGER),
+               CAST(is_default AS INTEGER)
+        FROM pokemon
     ''')
-    base_pokemon = {r[0]: r[1] for r in cur.fetchall()}
-    base_ids = set(base_pokemon.keys())
+    pokemon_info = {}
+    for r in cur.fetchall():
+        pokemon_info[r[0]] = {'species': r[1], 'default': r[2]}
 
     # 레벨업 기술 일괄 조회
     print('  레벨업 기술 조회...')
@@ -307,17 +314,19 @@ def export_moves():
     moves_data = {}
     for r in cur.fetchall():
         pid = r[0]
-        if pid not in base_ids:
+        info = pokemon_info.get(pid)
+        if not info:
             continue
-        sid = str(base_pokemon[pid])
+        # 기본폼 → species_id 키, 비기본폼 → pokemon_id 키
+        key = str(info['species']) if info['default'] else str(pid)
         vg = str(r[1])
-        if sid not in moves_data:
-            moves_data[sid] = {}
-        if vg not in moves_data[sid]:
-            moves_data[sid][vg] = {}
-        if 'lv' not in moves_data[sid][vg]:
-            moves_data[sid][vg]['lv'] = []
-        moves_data[sid][vg]['lv'].append([r[2], r[3]])
+        if key not in moves_data:
+            moves_data[key] = {}
+        if vg not in moves_data[key]:
+            moves_data[key][vg] = {}
+        if 'lv' not in moves_data[key][vg]:
+            moves_data[key][vg]['lv'] = []
+        moves_data[key][vg]['lv'].append([r[2], r[3]])
 
     # TM/HM 번호 매핑 구축 (move_id+version_group_id → TM01/HM01)
     print('  TM/HM 번호 매핑 구축...')
@@ -352,25 +361,26 @@ def export_moves():
 
     for r in cur.fetchall():
         pid = r[0]
-        if pid not in base_ids:
+        info = pokemon_info.get(pid)
+        if not info:
             continue
-        sid = str(base_pokemon[pid])
+        data_key = str(info['species']) if info['default'] else str(pid)
         vg = str(r[1])
         vg_int = r[1]
         move_id = r[2]
         move_name = r[3]
 
-        if sid not in moves_data:
-            moves_data[sid] = {}
-        if vg not in moves_data[sid]:
-            moves_data[sid][vg] = {}
+        if data_key not in moves_data:
+            moves_data[data_key] = {}
+        if vg not in moves_data[data_key]:
+            moves_data[data_key][vg] = {}
 
         label = machine_map.get((vg_int, move_id), 'TM??')
         key = 'hm' if label.startswith('HM') else 'tm'
 
-        if key not in moves_data[sid][vg]:
-            moves_data[sid][vg][key] = []
-        moves_data[sid][vg][key].append([label, move_name])
+        if key not in moves_data[data_key][vg]:
+            moves_data[data_key][vg][key] = []
+        moves_data[data_key][vg][key].append([label, move_name])
 
     conn.close()
 
@@ -541,15 +551,50 @@ def export_forms():
     conn = get_conn()
     cur = conn.cursor()
 
-    # 기본 폼이 아닌 pokemon 엔트리 (species_id 기준 그룹화)
+    # 리전폼 등장 세대 매핑
+    REGION_GEN = {
+        'alola': 7, 'galar': 8, 'hisui': 8, 'paldea': 9,
+    }
+
+    # 리전 전용 진화 조회 (가라르 야옹→ 나이킹 등)
+    # 리전폼 부모에서 진화하는 새 종
+    cur.execute('''
+        SELECT CAST(ps.id AS INTEGER),
+               ps.identifier,
+               CAST(ps.evolves_from_species_id AS INTEGER),
+               CAST(ps.generation_id AS INTEGER)
+        FROM pokemon_species ps
+        WHERE ps.evolves_from_species_id IN (
+            SELECT DISTINCT p.species_id
+            FROM pokemon p
+            JOIN pokemon_forms pf ON pf.pokemon_id = p.id
+            WHERE p.is_default = 0
+            AND pf.form_identifier IN (
+                'alola','galar','hisui','paldea'
+            )
+        )
+        AND ps.generation_id >= 7
+    ''')
+    # 리전 전용 진화 종 (원종에는 없는 진화)
+    regional_evos = {}
+    for r in cur.fetchall():
+        evo_id, ident, from_id, gen = r
+        regional_evos[evo_id] = {
+            'from': from_id, 'gen': gen
+        }
+
+    # 기본 폼이 아닌 pokemon 엔트리
     cur.execute('''
         SELECT CAST(p.id AS INTEGER),
                CAST(p.species_id AS INTEGER),
                pf.form_identifier,
-               COALESCE(pfn.pokemon_name, pfn.form_name, pf.form_identifier, '') as form_name
+               COALESCE(pfn.pokemon_name, pfn.form_name,
+                        pf.form_identifier, '') as form_name
         FROM pokemon p
         JOIN pokemon_forms pf ON pf.pokemon_id = p.id
-        LEFT JOIN pokemon_form_names pfn ON pf.id = pfn.pokemon_form_id AND pfn.local_language_id=?
+        LEFT JOIN pokemon_form_names pfn
+            ON pf.id = pfn.pokemon_form_id
+            AND pfn.local_language_id=?
         WHERE p.is_default = 0
         ORDER BY p.species_id, p.id
     ''', (LANG_KO,))
@@ -571,13 +616,18 @@ def export_forms():
         ''', (pid,))
         stats = {}
         for sr in cur.fetchall():
-            stat_key = sr[0].replace('special-attack', 'sp-attack').replace('special-defense', 'sp-defense')
+            stat_key = sr[0].replace(
+                'special-attack', 'sp-attack'
+            ).replace('special-defense', 'sp-defense')
             stats[stat_key] = sr[1]
 
         # 특성
         cur.execute('''
-            SELECT an.name, pa.is_hidden FROM pokemon_abilities pa
-            JOIN ability_names an ON pa.ability_id = an.ability_id AND an.local_language_id=?
+            SELECT an.name, pa.is_hidden
+            FROM pokemon_abilities pa
+            JOIN ability_names an
+                ON pa.ability_id = an.ability_id
+                AND an.local_language_id=?
             WHERE pa.pokemon_id=?
             ORDER BY CAST(pa.slot AS INTEGER)
         ''', (LANG_KO, pid))
@@ -609,12 +659,40 @@ def export_forms():
         if hidden:
             entry['hiddenAbility'] = hidden
 
+        # 리전폼 등장 세대
+        region_key = (form_ident or '').split('-')[0]
+        if region_key in REGION_GEN:
+            entry['introGen'] = REGION_GEN[region_key]
+
         forms[key].append(entry)
+
+    # 리전 전용 진화 정보를 별도 키로 저장
+    regional_evo_data = {}
+    for evo_id, info in regional_evos.items():
+        from_key = str(info['from'])
+        if from_key not in regional_evo_data:
+            regional_evo_data[from_key] = []
+        # 진화 종의 한글 이름
+        cur.execute(
+            'SELECT name FROM pokemon_species_names '
+            'WHERE pokemon_species_id=? AND local_language_id=?',
+            (evo_id, LANG_KO)
+        )
+        row = cur.fetchone()
+        name = row[0] if row else str(evo_id)
+        regional_evo_data[from_key].append({
+            'id': evo_id, 'name': name, 'gen': info['gen']
+        })
 
     conn.close()
 
     save_json(os.path.join(OUT_DIR, 'forms.json'), forms)
+    save_json(
+        os.path.join(OUT_DIR, 'regional_evos.json'),
+        regional_evo_data
+    )
     print(f'  → {len(forms)}종의 폼 데이터 저장 완료')
+    print(f'  → {len(regional_evo_data)}종의 리전 전용 진화 저장')
 
 
 def export_dex_numbers():
