@@ -104,10 +104,12 @@ function openFilterPanel() {
     filterPanel.classList.remove('hidden');
     filterPanel.classList.add('open');
     filterOverlay.classList.remove('hidden');
+    document.body.classList.add('no-scroll');
 }
 
 function closeFilterPanel() {
     filterPanel.classList.remove('open');
+    document.body.classList.remove('no-scroll');
     setTimeout(() => {
         filterPanel.classList.add('hidden');
         filterOverlay.classList.add('hidden');
@@ -473,47 +475,59 @@ function showDetail(p) {
     }
 
     detailPanel.innerHTML = `
-        <div class="detail-close"><button id="detailClose">&times;</button></div>
-        <div class="detail-name">#${String(p.id).padStart(4, '0')} ${p.name}</div>
-        <div class="detail-name-en">${p.nameEn}</div>
-        <div class="detail-types">${typeBadges}</div>
-
-        <div class="detail-section">
-            <div class="detail-section-title">특성</div>
-            <div style="font-size:13px;">${abilityStr}</div>
+        <div class="detail-header">
+            <div class="detail-header-info">
+                <span class="detail-header-num">#${String(p.id).padStart(4, '0')}</span>${p.name}
+            </div>
+            <button class="detail-close-btn" id="detailClose">&times;</button>
         </div>
+        <div class="detail-body">
+            <div class="detail-name-en">${p.nameEn}</div>
+            <div class="detail-types">${typeBadges}</div>
 
-        <div class="detail-section">
-            <div class="detail-section-title">종족값 (합계: ${total})</div>
-            ${statRows}
-        </div>
+            <div class="detail-section">
+                <div class="detail-section-title">특성</div>
+                <div style="font-size:13px;">${abilityStr}</div>
+            </div>
 
-        <div class="detail-section">
-            <div class="detail-section-title">격파 시 노력치</div>
-            <div class="ev-row">${evDisplay}</div>
-        </div>
+            <div class="detail-section">
+                <div class="detail-section-title">종족값 (합계: ${total})</div>
+                ${statRows}
+            </div>
 
-        <div class="detail-section">
-            <div class="detail-section-title">진화</div>
-            ${evoHtml}
-        </div>
+            <div class="detail-section">
+                <div class="detail-section-title">격파 시 노력치</div>
+                <div class="ev-row">${evDisplay}</div>
+            </div>
 
-        <div class="detail-section">
-            <div class="detail-section-title">포획 위치</div>
-            ${encHtml}
-        </div>
+            <div class="detail-section">
+                <div class="detail-section-title">진화</div>
+                ${evoHtml}
+            </div>
 
-        <div class="detail-section">
-            <div class="detail-section-title">레벨업 기술</div>
-            ${movesHtml}
+            <div class="detail-section">
+                <div class="detail-section-title">포획 위치</div>
+                ${encHtml}
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">레벨업 기술</div>
+                ${movesHtml}
+            </div>
         </div>
     `;
 
     detailOverlay.classList.remove('hidden');
+    detailPanel.scrollTop = 0;
+    document.body.classList.add('no-scroll');
 
-    $('#detailClose').onclick = () => detailOverlay.classList.add('hidden');
+    const closeDetail = () => {
+        detailOverlay.classList.add('hidden');
+        document.body.classList.remove('no-scroll');
+    };
+    $('#detailClose').onclick = closeDetail;
     detailOverlay.onclick = (e) => {
-        if (e.target === detailOverlay) detailOverlay.classList.add('hidden');
+        if (e.target === detailOverlay) closeDetail();
     };
 }
 
@@ -521,10 +535,12 @@ function showDetail(p) {
 btnMenu.onclick = () => {
     sideMenu.classList.add('open');
     menuOverlay.classList.remove('hidden');
+    document.body.classList.add('no-scroll');
 };
 menuOverlay.onclick = () => {
     sideMenu.classList.remove('open');
     menuOverlay.classList.add('hidden');
+    document.body.classList.remove('no-scroll');
 };
 
 // ─── 보기 전환 ───
