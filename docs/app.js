@@ -577,7 +577,7 @@ function renderEvolutionChain(chain, currentId) {
 
     function nameHtml(m) {
         const cls = m.id === currentId ? 'evo-name current' : 'evo-name';
-        return `<span class="${cls}">${m.name}</span>`;
+        return `<span class="${cls}" data-evo-id="${m.id}">${m.name}</span>`;
     }
 
     const children = getChildren(base.id);
@@ -775,11 +775,15 @@ function buildAllGenContent(p, gen) {
     html += `<div class="ev-row">${evDisplay}</div>`;
     html += '</div>';
 
-    html += '<div class="gen-section-title">기술</div>';
-    html += buildMovesForGen(p.id, gen);
-
-    html += '<div class="gen-section-title">포획 위치</div>';
+    html += '<div class="detail-section">';
+    html += '<div class="detail-section-title">포획 위치</div>';
     html += buildEncountersForGen(p.id, gen);
+    html += '</div>';
+
+    html += '<div class="detail-section">';
+    html += '<div class="detail-section-title">기술</div>';
+    html += buildMovesForGen(p.id, gen);
+    html += '</div>';
 
     return html;
 }
@@ -854,12 +858,13 @@ function showDetail(p, autoGen) {
         </div>
         <div class="detail-body">
             ${genTabsHtml}
-            <div id="genContent">${genContentHtml}</div>
 
             <div class="detail-section">
                 <div class="detail-section-title">진화</div>
                 ${evoHtml}
             </div>
+
+            <div id="genContent">${genContentHtml}</div>
         </div>
     `;
 
@@ -877,6 +882,16 @@ function showDetail(p, autoGen) {
 
     // 초기 버전 서브탭 바인딩
     bindVersionTabs(document.getElementById('genContent'));
+
+    // 진화 체인 클릭 → 해당 포켓몬으로 이동
+    detailPanel.querySelectorAll('.evo-name[data-evo-id]').forEach(el => {
+        el.onclick = () => {
+            const targetId = parseInt(el.dataset.evoId);
+            if (targetId === p.id) return;
+            const targetPokemon = allPokemon.find(pk => pk.id === targetId);
+            if (targetPokemon) showDetail(targetPokemon, autoGen);
+        };
+    });
 
     detailOverlay.classList.remove('hidden');
     detailPanel.scrollTop = 0;

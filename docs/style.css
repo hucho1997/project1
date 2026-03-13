@@ -623,7 +623,9 @@ body.no-scroll {
 }
 
 .detail-header-en {
+    font-size: 13px;
     font-weight: 400;
+    color: var(--text-dim);
     margin-left: 6px;
 }
 
@@ -639,7 +641,7 @@ body.no-scroll {
 }
 
 .detail-section {
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 .detail-section-title {
     font-size: 12px;
@@ -705,6 +707,10 @@ body.no-scroll {
     padding: 4px 8px;
     background: var(--bg-card);
     border-radius: 6px;
+    cursor: pointer;
+}
+.evo-name:active {
+    background: var(--bg-hover);
 }
 .evo-name.current {
     background: var(--accent-dim);
@@ -873,7 +879,7 @@ body.no-scroll {
 
 /* 마스터 세대 탭 */
 .gen-tabs {
-    margin-bottom: 0;
+    margin-bottom: 16px;
 }
 .gen-tabs .tab-bar {
     margin-bottom: 0;
