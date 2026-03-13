@@ -319,11 +319,29 @@ def export_moves():
             moves_data[sid][vg]['lv'] = []
         moves_data[sid][vg]['lv'].append([r[2], r[3]])
 
+    # TM/HM 번호 매핑 구축 (move_id+version_group_id → TM01/HM01)
+    print('  TM/HM 번호 매핑 구축...')
+    cur.execute('''
+        SELECT CAST(m.version_group_id AS INTEGER),
+               CAST(m.move_id AS INTEGER),
+               i.identifier
+        FROM machines m
+        JOIN items i ON m.item_id = i.id
+    ''')
+    machine_map = {}
+    for r in cur.fetchall():
+        vg_id, move_id, item_ident = r
+        prefix = 'HM' if item_ident.startswith('hm') else 'TM'
+        num = item_ident.replace('tm', '').replace('hm', '')
+        label = f'{prefix}{num.zfill(2)}'
+        machine_map[(vg_id, move_id)] = label
+
     # TM/HM 기술 일괄 조회
     print('  TM/HM 기술 조회...')
     cur.execute('''
         SELECT CAST(pm.pokemon_id AS INTEGER),
                CAST(pm.version_group_id AS INTEGER),
+               CAST(pm.move_id AS INTEGER),
                mn.name
         FROM pokemon_moves pm
         JOIN move_names mn ON pm.move_id = mn.move_id
@@ -338,13 +356,21 @@ def export_moves():
             continue
         sid = str(base_pokemon[pid])
         vg = str(r[1])
+        vg_int = r[1]
+        move_id = r[2]
+        move_name = r[3]
+
         if sid not in moves_data:
             moves_data[sid] = {}
         if vg not in moves_data[sid]:
             moves_data[sid][vg] = {}
-        if 'tm' not in moves_data[sid][vg]:
-            moves_data[sid][vg]['tm'] = []
-        moves_data[sid][vg]['tm'].append(r[2])
+
+        label = machine_map.get((vg_int, move_id), 'TM??')
+        key = 'hm' if label.startswith('HM') else 'tm'
+
+        if key not in moves_data[sid][vg]:
+            moves_data[sid][vg][key] = []
+        moves_data[sid][vg][key].append([label, move_name])
 
     conn.close()
 

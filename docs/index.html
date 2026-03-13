@@ -24,7 +24,7 @@
     <!-- 사이드 메뉴 -->
     <div class="menu-overlay hidden" id="menuOverlay"></div>
     <nav class="side-menu" id="sideMenu">
-        <div class="menu-header">설정</div>
+        <div class="menu-header">Pokédex</div>
         <div class="menu-section">
             <div class="menu-label">보기</div>
             <div class="view-toggle">
@@ -32,6 +32,7 @@
                 <button class="view-btn" data-view="list" id="viewList">리스트</button>
             </div>
         </div>
+        <div class="menu-section" id="dexTreeContainer"></div>
     </nav>
 
     <!-- 검색/필터 패널 -->
@@ -59,19 +60,6 @@
                 </div>
                 <div class="filter-body">
                     <div class="chip-group" id="genChips"></div>
-                </div>
-            </div>
-
-            <!-- 도감 (항상 펼침) -->
-            <div class="filter-group open" data-always-open="true">
-                <div class="filter-title">
-                    <span class="filter-title-text">도감</span>
-                    <button class="filter-reset" data-group="dex">↺</button>
-                </div>
-                <div class="filter-body">
-                    <select id="dexSelect" class="filter-select">
-                        <option value="national">전국도감</option>
-                    </select>
                 </div>
             </div>
 

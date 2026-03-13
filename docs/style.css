@@ -726,13 +726,7 @@ body.no-scroll {
     font-size: 13px;
     border-collapse: collapse;
 }
-.ability-table th {
-    text-align: left;
-    color: var(--text-dim);
-    font-weight: 400;
-    padding: 4px 8px;
-    border-bottom: 1px solid #2a2a2a;
-}
+/* ability-table thead는 사용하지 않음 */
 .ability-table td {
     padding: 4px 8px;
 }
@@ -746,14 +740,10 @@ body.no-scroll {
 }
 .tab-bar {
     display: flex;
+    flex-wrap: wrap;
     gap: 0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
     border-bottom: 1px solid #2a2a2a;
     margin-bottom: 8px;
-}
-.tab-bar::-webkit-scrollbar {
-    height: 0;
 }
 .tab-btn {
     flex-shrink: 0;
@@ -820,6 +810,93 @@ body.no-scroll {
 }
 .move-name {
     flex: 1;
+}
+
+/* ─── 도감 트리 (사이드 메뉴) ─── */
+.dex-tree-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+.dex-item {
+    padding: 8px 12px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+.dex-item:active {
+    background: var(--bg-hover);
+}
+.dex-item.active {
+    color: var(--accent);
+    background: var(--accent-dim);
+}
+.dex-region {
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+}
+.dex-region:active {
+    color: var(--accent);
+}
+.dex-region-children {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+}
+.dex-region.open + .dex-region-children {
+    max-height: 500px;
+}
+.dex-region-children .dex-item {
+    padding-left: 28px;
+    font-size: 13px;
+}
+
+/* 기술 버전 라벨 */
+.moves-version-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-top: 12px;
+    margin-bottom: 4px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--accent-dim);
+}
+.moves-version-label:first-child {
+    margin-top: 0;
+}
+
+/* 마스터 세대 탭 */
+.gen-tabs {
+    margin-bottom: 0;
+}
+.gen-tabs .tab-bar {
+    margin-bottom: 0;
+}
+
+/* 세대별 컨텐츠 영역 */
+.gen-section-title {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+/* 데이터 없음 */
+.no-data {
+    font-size: 13px;
+    color: var(--text-dim);
+    padding: 4px 0;
 }
 
 /* ─── 스크롤바 ─── */
