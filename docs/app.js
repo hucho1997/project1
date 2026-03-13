@@ -28,29 +28,46 @@ const EV_STATS = [
 const METHOD_KO = {
     'walk': '걷기', 'surf': '파도타기', 'old-rod': '낡은낚싯대',
     'good-rod': '좋은낚싯대', 'super-rod': '대단한낚싯대',
-    'rock-smash': '바위깨기', 'headbutt': '박치기', 'gift': '선물',
-    'gift-egg': '알', 'only-one': '고정심볼', 'dark-grass': '짙은풀숲',
+    'super-rod-spots': '대단한낚싯대(물보라)',
+    'rock-smash': '바위깨기', 'headbutt': '박치기',
+    'headbutt-low': '박치기(낮은확률)', 'headbutt-normal': '박치기(보통)',
+    'headbutt-high': '박치기(높은확률)',
+    'gift': '선물', 'gift-egg': '알', 'only-one': '고정심볼',
+    'dark-grass': '짙은풀숲',
     'grass-spots': '흔들리는풀숲', 'cave-spots': '흔들리는동굴',
+    'bridge-spots': '흔들리는다리', 'bubbling-spots': '물보라',
+    'surf-spots': '파도타기(물보라)',
     'roaming-grass': '배회(풀숲)', 'roaming-water': '배회(수상)',
     'npc-trade': 'NPC교환', 'overworld': '심볼인카운터',
+    'overworld-flying': '심볼(비행)', 'overworld-water': '심볼(수상)',
+    'overworld-special': '심볼(특수)', 'overworld-flying-special': '심볼(비행·특수)',
+    'overworld-water-special': '심볼(수상·특수)',
     'seaweed': '해초', 'yellow-flowers': '노란꽃밭',
     'purple-flowers': '보라꽃밭', 'red-flowers': '빨간꽃밭',
+    'rough-terrain': '험한지형',
     'horde': '무리배틀', 'sos-encounter': 'SOS배틀',
+    'sos-from-bubbling-spot': 'SOS배틀(물보라)',
     'island-scan': '섬스캔',
+    'berry-piles': '나무열매더미', 'devon-scope': '디본스코프',
+    'feebas-tile-fishing': '미꾸리낚시(특수타일)',
+    'pokeflute': '포켓몬피리', 'squirt-bottle': '물뿌리개',
+    'wailmer-pail': '고래왕자물뿌리개',
+    'pokemon-ranger': '포켓몬레인저', 'pokemon-channel-pal': '포켓몬채널',
+    'colosseum-bonus-disc-jpn': '콜로세움보너스(일)', 'colosseum-bonus-disc-us': '콜로세움보너스(미)',
 };
 
 // ─── 버전 그룹 정보 (기술 탭용) ───
 const VG_INFO = {
-    1: { name: '적/녹', gen: 1 }, 2: { name: '피카츄', gen: 1 },
-    3: { name: '금/은', gen: 2 }, 4: { name: '크리스탈', gen: 2 },
-    5: { name: '루비/사파이어', gen: 3 }, 6: { name: '에메랄드', gen: 3 },
-    7: { name: 'FR/LG', gen: 3 }, 12: { name: '콜로세움', gen: 3 }, 13: { name: 'XD', gen: 3 },
-    8: { name: '다이아/펄', gen: 4 }, 9: { name: '플라티나', gen: 4 }, 10: { name: 'HG/SS', gen: 4 },
-    11: { name: '블랙/화이트', gen: 5 }, 14: { name: 'B2/W2', gen: 5 },
-    15: { name: 'X/Y', gen: 6 }, 16: { name: 'OR/AS', gen: 6 },
-    17: { name: '썬/문', gen: 7 }, 18: { name: 'US/UM', gen: 7 }, 19: { name: '레츠고', gen: 7 },
-    20: { name: '소드/실드', gen: 8 }, 23: { name: 'BD/SP', gen: 8 }, 24: { name: 'LA', gen: 8 },
-    25: { name: '스칼렛/바이올렛', gen: 9 },
+    1: { name: '적·녹', gen: 1 }, 2: { name: '피카츄', gen: 1 },
+    3: { name: '금·은', gen: 2 }, 4: { name: '크리스탈', gen: 2 },
+    5: { name: '루비·사파이어', gen: 3 }, 6: { name: '에메랄드', gen: 3 },
+    7: { name: 'FR·LG', gen: 3 }, 12: { name: '콜로세움', gen: 3 }, 13: { name: 'XD', gen: 3 },
+    8: { name: '다이아·펄', gen: 4 }, 9: { name: '플라티나', gen: 4 }, 10: { name: 'HG·SS', gen: 4 },
+    11: { name: '블랙·화이트', gen: 5 }, 14: { name: 'B2·W2', gen: 5 },
+    15: { name: 'X·Y', gen: 6 }, 16: { name: 'OR·AS', gen: 6 },
+    17: { name: '썬·문', gen: 7 }, 18: { name: 'US·UM', gen: 7 }, 19: { name: '레츠고', gen: 7 },
+    20: { name: '소드·실드', gen: 8 }, 23: { name: 'BD·SP', gen: 8 }, 24: { name: 'LA', gen: 8 },
+    25: { name: '스칼렛·바이올렛', gen: 9 },
 };
 
 // ─── 출현 버전 → 세대 매핑 ───
@@ -563,16 +580,28 @@ function findEvolutionChain(speciesId) {
 }
 
 // ─── 진화 체인 HTML ───
-function renderEvolutionChain(chain, currentId) {
+function renderEvolutionChain(chain, currentId, gen) {
     if (!chain || chain.length <= 1) {
         return '<div class="no-data">진화 없음</div>';
     }
 
-    const base = chain.find(m => m.from === null);
+    // 세대 필터: 해당 세대에 존재하는 포켓몬만
+    const filtered = gen
+        ? chain.filter(m => {
+            const pk = allPokemon.find(p => p.id === m.id);
+            return pk && pk.gen <= gen;
+        })
+        : chain;
+
+    if (filtered.length <= 1) {
+        return '<div class="no-data">진화 없음</div>';
+    }
+
+    const base = filtered.find(m => m.from === null || !filtered.some(f => f.id === m.from));
     if (!base) return '';
 
     function getChildren(parentId) {
-        return chain.filter(m => m.from === parentId);
+        return filtered.filter(m => m.from === parentId);
     }
 
     function nameHtml(m) {
@@ -757,8 +786,17 @@ function buildAllGenContent(p, gen) {
     }
     const evDisplay = evParts.length > 0 ? evParts.join('  ') : '없음';
 
+    // 진화 (세대 필터 적용)
+    const chain = findEvolutionChain(p.id);
+    const evoHtml = renderEvolutionChain(chain, p.id, gen);
+
     let html = '';
     html += `<div class="detail-types">${typeBadges}</div>`;
+
+    html += '<div class="detail-section">';
+    html += '<div class="detail-section-title">진화</div>';
+    html += evoHtml;
+    html += '</div>';
 
     html += '<div class="detail-section">';
     html += '<div class="detail-section-title">특성</div>';
@@ -842,10 +880,6 @@ function showDetail(p, autoGen) {
         genTabsHtml += '</div></div>';
     }
 
-    // 진화 (세대 무관)
-    const chain = findEvolutionChain(p.id);
-    const evoHtml = renderEvolutionChain(chain, p.id);
-
     // 세대별 컨텐츠
     const genContentHtml = defaultGen ? buildAllGenContent(p, defaultGen) : '<div class="no-data">데이터 없음</div>';
 
@@ -859,14 +893,21 @@ function showDetail(p, autoGen) {
         <div class="detail-body">
             ${genTabsHtml}
 
-            <div class="detail-section">
-                <div class="detail-section-title">진화</div>
-                ${evoHtml}
-            </div>
-
             <div id="genContent">${genContentHtml}</div>
         </div>
     `;
+
+    function bindGenContent(container) {
+        bindVersionTabs(container);
+        container.querySelectorAll('.evo-name[data-evo-id]').forEach(el => {
+            el.onclick = () => {
+                const targetId = parseInt(el.dataset.evoId);
+                if (targetId === p.id) return;
+                const targetPokemon = allPokemon.find(pk => pk.id === targetId);
+                if (targetPokemon) showDetail(targetPokemon, autoGen);
+            };
+        });
+    }
 
     // 세대 탭 클릭
     detailPanel.querySelectorAll('.gen-tabs .tab-btn').forEach(btn => {
@@ -876,22 +917,12 @@ function showDetail(p, autoGen) {
             const gen = parseInt(btn.dataset.gen);
             const content = document.getElementById('genContent');
             content.innerHTML = buildAllGenContent(p, gen);
-            bindVersionTabs(content);
+            bindGenContent(content);
         };
     });
 
-    // 초기 버전 서브탭 바인딩
-    bindVersionTabs(document.getElementById('genContent'));
-
-    // 진화 체인 클릭 → 해당 포켓몬으로 이동
-    detailPanel.querySelectorAll('.evo-name[data-evo-id]').forEach(el => {
-        el.onclick = () => {
-            const targetId = parseInt(el.dataset.evoId);
-            if (targetId === p.id) return;
-            const targetPokemon = allPokemon.find(pk => pk.id === targetId);
-            if (targetPokemon) showDetail(targetPokemon, autoGen);
-        };
-    });
+    // 초기 바인딩
+    bindGenContent(document.getElementById('genContent'));
 
     detailOverlay.classList.remove('hidden');
     detailPanel.scrollTop = 0;
