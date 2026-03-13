@@ -236,12 +236,6 @@ $$('.filter-reset').forEach(btn => {
             case 'dex':
                 $('#dexSelect').value = 'national';
                 break;
-            case 'egggroup':
-                $$('.chip[data-egg]').forEach(c => c.classList.remove('active'));
-                break;
-            case 'ability':
-                $('#abilityInput').value = '';
-                break;
             case 'stats':
                 $$('.stat-input').forEach(input => input.value = '');
                 filters.stats = {};
