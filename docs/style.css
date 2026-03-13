@@ -1,0 +1,719 @@
+/* ─── 리셋 & 기본 ─── */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+    --bg: #121212;
+    --bg-card: #1e1e1e;
+    --bg-hover: #2a2a2a;
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --accent: #e53935;
+    --accent-dim: rgba(229, 57, 53, 0.2);
+    --top-bar-h: 52px;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    overflow-x: hidden;
+    padding-top: var(--top-bar-h);
+}
+
+.hidden { display: none !important; }
+
+/* ─── 상단 바 ─── */
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--top-bar-h);
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    z-index: 100;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.title {
+    flex: 1;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 1px;
+}
+
+.btn-menu, .btn-search {
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 햄버거 아이콘 */
+.btn-menu {
+    flex-direction: column;
+    gap: 4px;
+    width: 40px;
+    height: 40px;
+}
+.btn-menu span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 1px;
+}
+
+/* ─── 사이드 메뉴 ─── */
+.menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 200;
+}
+
+.side-menu {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 280px;
+    height: 100%;
+    background: #1a1a1a;
+    z-index: 201;
+    transition: left 0.25s ease;
+    padding: 20px 16px;
+    overflow-y: auto;
+}
+.side-menu.open {
+    left: 0;
+}
+
+.menu-header {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #333;
+}
+
+.menu-section {
+    margin-bottom: 20px;
+}
+.menu-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+/* 보기 토글 */
+.view-toggle {
+    display: flex;
+    gap: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #444;
+}
+.view-btn {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.view-btn.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+/* ─── 필터 패널 ─── */
+.filter-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 300;
+}
+
+.filter-panel {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    max-width: 400px;
+    height: 100%;
+    background: #1a1a1a;
+    z-index: 301;
+    transition: right 0.25s ease;
+    padding: 16px;
+    overflow-y: auto;
+}
+.filter-panel.open {
+    right: 0;
+}
+
+/* 검색 + 전체 초기화 */
+.filter-top {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.filter-btn-search {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.filter-btn-search:active {
+    opacity: 0.8;
+}
+
+.filter-btn-reset {
+    padding: 12px 16px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 14px;
+    cursor: pointer;
+}
+.filter-btn-reset:active {
+    background: #2a2a2a;
+}
+
+/* 이름/번호 검색 */
+.filter-search-input {
+    margin-bottom: 16px;
+}
+.filter-search-input input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #252525;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+}
+.filter-search-input input:focus {
+    border-color: var(--accent);
+}
+.filter-search-input input::placeholder {
+    color: var(--text-dim);
+}
+
+/* 필터 그룹 */
+.filter-group {
+    margin-bottom: 4px;
+    border-bottom: 1px solid #222;
+}
+
+.filter-title {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+}
+
+.filter-title-text {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.filter-title-text[data-toggle] {
+    cursor: pointer;
+}
+.filter-title-text[data-toggle]:active {
+    color: var(--accent);
+}
+
+.filter-reset {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 2px 6px;
+    margin-left: 8px;
+}
+.filter-reset:active {
+    color: var(--accent);
+}
+
+/* 필터 본문 (접힘/펼침) */
+.filter-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease, padding 0.25s ease;
+    padding: 0;
+}
+
+.filter-group.open .filter-body {
+    max-height: 500px;
+    padding-bottom: 12px;
+}
+
+/* 칩 그룹 */
+.chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chip {
+    padding: 6px 14px;
+    border-radius: 16px;
+    border: 1px solid #444;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+/* 타입 칩 (타입별 색상) */
+.chip-type { border-width: 1.5px; }
+.chip-type.active { color: #fff; }
+
+.chip-type[data-type="normal"].active   { background: #929da3; border-color: #929da3; }
+.chip-type[data-type="fire"].active     { background: #ff9d55; border-color: #ff9d55; }
+.chip-type[data-type="water"].active    { background: #5090d6; border-color: #5090d6; }
+.chip-type[data-type="electric"].active { background: #f4d23c; border-color: #f4d23c; color: #333; }
+.chip-type[data-type="grass"].active    { background: #63bc5a; border-color: #63bc5a; }
+.chip-type[data-type="ice"].active      { background: #73cec0; border-color: #73cec0; }
+.chip-type[data-type="fighting"].active { background: #ce416b; border-color: #ce416b; }
+.chip-type[data-type="poison"].active   { background: #ab6ac8; border-color: #ab6ac8; }
+.chip-type[data-type="ground"].active   { background: #d97845; border-color: #d97845; }
+.chip-type[data-type="flying"].active   { background: #8fa8dd; border-color: #8fa8dd; }
+.chip-type[data-type="psychic"].active  { background: #fa7179; border-color: #fa7179; }
+.chip-type[data-type="bug"].active      { background: #91c12f; border-color: #91c12f; }
+.chip-type[data-type="rock"].active     { background: #c5b78c; border-color: #c5b78c; }
+.chip-type[data-type="ghost"].active    { background: #5269ad; border-color: #5269ad; }
+.chip-type[data-type="dragon"].active   { background: #0b6dc3; border-color: #0b6dc3; }
+.chip-type[data-type="dark"].active     { background: #5a5465; border-color: #5a5465; }
+.chip-type[data-type="steel"].active    { background: #5a8ea2; border-color: #5a8ea2; }
+.chip-type[data-type="fairy"].active    { background: #ec8fe6; border-color: #ec8fe6; }
+
+/* 도감 셀렉트 */
+.filter-select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    background: #252525;
+    color: var(--text);
+    font-size: 14px;
+}
+
+/* 특성 검색 입력 */
+.filter-text-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background: #252525;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+}
+.filter-text-input:focus {
+    border-color: var(--accent);
+}
+.filter-text-input::placeholder {
+    color: var(--text-dim);
+}
+
+/* 종족값 필터 */
+.stat-filter-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.stat-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.stat-filter-label {
+    width: 48px;
+    font-size: 13px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+}
+
+.stat-input {
+    width: 64px;
+    padding: 6px 8px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    background: #252525;
+    color: var(--text);
+    font-size: 13px;
+    text-align: center;
+    outline: none;
+    -moz-appearance: textfield;
+}
+.stat-input::-webkit-inner-spin-button,
+.stat-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+}
+.stat-input:focus {
+    border-color: var(--accent);
+}
+.stat-input::placeholder {
+    color: #555;
+}
+
+.stat-filter-sep {
+    color: var(--text-dim);
+    font-size: 13px;
+}
+
+.stat-total {
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid #2a2a2a;
+}
+
+/* ─── 포켓몬 그리드 ─── */
+.pokemon-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    padding: 4px;
+}
+
+@media (max-width: 359px) {
+    .pokemon-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 500px) {
+    .pokemon-grid { grid-template-columns: repeat(5, 1fr); }
+}
+@media (min-width: 700px) {
+    .pokemon-grid { grid-template-columns: repeat(7, 1fr); }
+}
+
+.pokemon-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 4px 6px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.15s;
+}
+.pokemon-card:active {
+    background: var(--bg-hover);
+}
+
+.pokemon-img {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    background: #1e1e1e;
+    margin-bottom: 4px;
+}
+
+.pokemon-num {
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.2;
+}
+
+.pokemon-name {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.3;
+    text-align: center;
+    word-break: keep-all;
+    max-width: 100%;
+}
+
+/* ─── 리스트 보기 ─── */
+.pokemon-grid.list-view {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0;
+}
+
+.pokemon-grid.list-view .pokemon-card {
+    flex-direction: row;
+    padding: 10px 14px;
+    border-radius: 0;
+    border-bottom: 1px solid #1e1e1e;
+    gap: 12px;
+}
+
+.pokemon-grid.list-view .pokemon-img {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.pokemon-grid.list-view .pokemon-info {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.pokemon-grid.list-view .pokemon-num {
+    font-size: 12px;
+    min-width: 36px;
+}
+
+.pokemon-grid.list-view .pokemon-name {
+    font-size: 14px;
+}
+
+.pokemon-grid.list-view .pokemon-types {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+}
+
+/* 타입 뱃지 */
+.type-badge {
+    display: none;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #fff;
+    line-height: 1.4;
+}
+
+.pokemon-grid.list-view .type-badge {
+    display: inline-block;
+}
+
+.type-normal   { background: #929da3; }
+.type-fire     { background: #ff9d55; }
+.type-water    { background: #5090d6; }
+.type-electric { background: #f4d23c; color: #333; }
+.type-grass    { background: #63bc5a; }
+.type-ice      { background: #73cec0; }
+.type-fighting { background: #ce416b; }
+.type-poison   { background: #ab6ac8; }
+.type-ground   { background: #d97845; }
+.type-flying   { background: #8fa8dd; }
+.type-psychic  { background: #fa7179; }
+.type-bug      { background: #91c12f; }
+.type-rock     { background: #c5b78c; }
+.type-ghost    { background: #5269ad; }
+.type-dragon   { background: #0b6dc3; }
+.type-dark     { background: #5a5465; }
+.type-steel    { background: #5a8ea2; }
+.type-fairy    { background: #ec8fe6; }
+
+/* ─── 상세 오버레이 ─── */
+.detail-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 400;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.detail-panel {
+    width: 100%;
+    max-width: 500px;
+    max-height: 85vh;
+    background: #1a1a1a;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px;
+    overflow-y: auto;
+    animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+
+.detail-close {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+.detail-close button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.detail-name {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+.detail-name-en {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+}
+
+.detail-types {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+.detail-types .type-badge {
+    display: inline-block;
+    font-size: 12px;
+    padding: 4px 10px;
+}
+
+.detail-section {
+    margin-bottom: 16px;
+}
+.detail-section-title {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+/* 종족값 바 */
+.stat-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+.stat-label {
+    width: 40px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+}
+.stat-value {
+    width: 32px;
+    text-align: right;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+.stat-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: #2a2a2a;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.stat-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+/* 노력치 표시 */
+.ev-row {
+    font-size: 13px;
+    color: var(--text);
+    margin-top: 8px;
+}
+.ev-value {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* 진화 체인 */
+.evo-chain {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    font-size: 13px;
+}
+.evo-name {
+    padding: 4px 8px;
+    background: var(--bg-card);
+    border-radius: 6px;
+}
+.evo-name.current {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+}
+.evo-arrow {
+    color: var(--text-dim);
+    font-size: 11px;
+}
+.evo-condition {
+    font-size: 10px;
+    color: var(--text-dim);
+}
+
+/* 출현 위치 */
+.encounter-version {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+.encounter-row {
+    font-size: 13px;
+    color: var(--text);
+    padding: 2px 0 2px 12px;
+}
+.encounter-method {
+    color: var(--text-dim);
+}
+
+/* 기술 */
+.move-row {
+    display: flex;
+    font-size: 13px;
+    padding: 3px 0;
+    border-bottom: 1px solid #1e1e1e;
+}
+.move-level {
+    width: 50px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+}
+.move-name {
+    flex: 1;
+}
+
+/* ─── 스크롤바 ─── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
