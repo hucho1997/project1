@@ -36,6 +36,48 @@ const METHOD_KO = {
     'seaweed': '해초', 'yellow-flowers': '노란꽃밭',
     'purple-flowers': '보라꽃밭', 'red-flowers': '빨간꽃밭',
     'horde': '무리배틀', 'sos-encounter': 'SOS배틀',
+    'island-scan': '섬스캔',
+};
+
+// ─── 버전 그룹 정보 (기술 탭용) ───
+const VG_INFO = {
+    1: { name: '적/녹', gen: 1 }, 2: { name: '피카츄', gen: 1 },
+    3: { name: '금/은', gen: 2 }, 4: { name: '크리스탈', gen: 2 },
+    5: { name: '루비/사파이어', gen: 3 }, 6: { name: '에메랄드', gen: 3 },
+    7: { name: 'FR/LG', gen: 3 }, 12: { name: '콜로세움', gen: 3 }, 13: { name: 'XD', gen: 3 },
+    8: { name: '다이아/펄', gen: 4 }, 9: { name: '플라티나', gen: 4 }, 10: { name: 'HG/SS', gen: 4 },
+    11: { name: '블랙/화이트', gen: 5 }, 14: { name: 'B2/W2', gen: 5 },
+    15: { name: 'X/Y', gen: 6 }, 16: { name: 'OR/AS', gen: 6 },
+    17: { name: '썬/문', gen: 7 }, 18: { name: 'US/UM', gen: 7 }, 19: { name: '레츠고', gen: 7 },
+    20: { name: '소드/실드', gen: 8 }, 23: { name: 'BD/SP', gen: 8 }, 24: { name: 'LA', gen: 8 },
+    25: { name: '스칼렛/바이올렛', gen: 9 },
+};
+
+// ─── 출현 버전 → 세대 매핑 ───
+const VERSION_GEN = {
+    'red': 1, 'blue': 1, 'yellow': 1,
+    'gold': 2, 'silver': 2, 'crystal': 2,
+    'ruby': 3, 'sapphire': 3, 'emerald': 3, 'firered': 3, 'leafgreen': 3,
+    'diamond': 4, 'pearl': 4, 'platinum': 4, 'heartgold': 4, 'soulsilver': 4,
+    'black': 5, 'white': 5, 'black-2': 5, 'white-2': 5,
+    'x': 6, 'y': 6, 'omega-ruby': 6, 'alpha-sapphire': 6,
+    'sun': 7, 'moon': 7, 'ultra-sun': 7, 'ultra-moon': 7,
+    'sword': 8, 'shield': 8,
+    'scarlet': 9, 'violet': 9,
+};
+
+const VERSION_KO = {
+    'red': '레드', 'blue': '블루', 'yellow': '옐로',
+    'gold': '골드', 'silver': '실버', 'crystal': '크리스탈',
+    'ruby': '루비', 'sapphire': '사파이어', 'emerald': '에메랄드',
+    'firered': '파이어레드', 'leafgreen': '리프그린',
+    'diamond': '다이아몬드', 'pearl': '펄', 'platinum': '플라티나',
+    'heartgold': '하트골드', 'soulsilver': '소울실버',
+    'black': '블랙', 'white': '화이트', 'black-2': '블랙2', 'white-2': '화이트2',
+    'x': 'X', 'y': 'Y', 'omega-ruby': 'OR', 'alpha-sapphire': 'AS',
+    'sun': '썬', 'moon': '문', 'ultra-sun': 'US', 'ultra-moon': 'UM',
+    'sword': '소드', 'shield': '실드',
+    'scarlet': '스칼렛', 'violet': '바이올렛',
 };
 
 // ─── DOM ───
@@ -402,6 +444,27 @@ function renderEvolutionChain(chain, currentId) {
     return html;
 }
 
+// ─── 탭 초기화 ───
+function setupTabs(container) {
+    container.querySelectorAll('.tab-container').forEach(tc => {
+        tc.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = () => {
+                tc.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                tc.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                tc.querySelector(`.tab-content[data-tab="${btn.dataset.tab}"]`).classList.add('active');
+            };
+        });
+    });
+}
+
+// ─── 세대 탭 정렬 (현재 세대 먼저, 나머지 시간순) ───
+function orderGens(genKeys) {
+    const sorted = [...genKeys].sort((a, b) => b - a);
+    const current = sorted[0];
+    return [current, ...sorted.filter(g => g !== current).sort((a, b) => a - b)];
+}
+
 // ─── 상세 패널 ───
 function showDetail(p) {
     const typeBadges = p.types.map(t =>
@@ -435,43 +498,107 @@ function showDetail(p) {
     }
     const evDisplay = evParts.length > 0 ? evParts.join('  ') : '없음';
 
-    // 특성
-    const abilityStr = p.abilities.join(', ')
-        + (p.hiddenAbility ? ` <span style="color:var(--text-dim);">(숨겨진: ${p.hiddenAbility})</span>` : '');
+    // 특성 (테이블)
+    let abilityRows = p.abilities.map(a =>
+        `<tr><td>${a}</td><td></td></tr>`
+    ).join('');
+    if (p.hiddenAbility) {
+        abilityRows += `<tr class="ability-hidden"><td>${p.hiddenAbility} (숨겨진 특성)</td><td></td></tr>`;
+    }
 
     // 진화
     const chain = findEvolutionChain(p.id);
     const evoHtml = renderEvolutionChain(chain, p.id);
 
-    // 출현 위치
+    // 출현 위치 (세대별 탭)
     const enc = encounterData[String(p.id)];
     let encHtml = '';
     if (enc) {
-        for (const [ver, locs] of Object.entries(enc)) {
-            encHtml += `<div class="encounter-version">[${ver}]</div>`;
-            locs.forEach(l => {
-                const methodKo = METHOD_KO[l.method] || l.method;
-                encHtml += `<div class="encounter-row">${l.loc} <span class="encounter-method">(${methodKo})</span></div>`;
-            });
+        const encGenGroups = {};
+        for (const ver of Object.keys(enc)) {
+            const gen = VERSION_GEN[ver] || 0;
+            if (!encGenGroups[gen]) encGenGroups[gen] = {};
+            encGenGroups[gen][ver] = enc[ver];
         }
+        const encGenKeys = Object.keys(encGenGroups).map(Number);
+        const encOrdered = orderGens(encGenKeys);
+
+        encHtml += '<div class="tab-container">';
+        encHtml += '<div class="tab-bar">';
+        encOrdered.forEach((gen, i) => {
+            const active = i === 0 ? ' active' : '';
+            encHtml += `<button class="tab-btn${active}" data-tab="enc-${gen}">${gen}세대</button>`;
+        });
+        encHtml += '</div>';
+
+        encOrdered.forEach((gen, i) => {
+            const active = i === 0 ? ' active' : '';
+            encHtml += `<div class="tab-content${active}" data-tab="enc-${gen}">`;
+            for (const [ver, locs] of Object.entries(encGenGroups[gen])) {
+                const verKo = VERSION_KO[ver] || ver;
+                encHtml += `<div class="encounter-version">[${verKo}]</div>`;
+                locs.forEach(l => {
+                    const methodKo = METHOD_KO[l.method] || l.method;
+                    encHtml += `<div class="encounter-row">${l.loc} <span class="encounter-method">(${methodKo})</span></div>`;
+                });
+            }
+            encHtml += '</div>';
+        });
+        encHtml += '</div>';
     } else {
         encHtml = '<div style="font-size:13px; color:var(--text-dim);">출현 데이터 없음</div>';
     }
 
-    // 기술 (첫 번째 가용 version_group)
+    // 기술 (세대별 탭)
     const movesForPokemon = movesData[String(p.id)];
     let movesHtml = '';
     if (movesForPokemon) {
-        const vgKeys = Object.keys(movesForPokemon).sort((a, b) => parseInt(b) - parseInt(a));
-        const latestVg = vgKeys[0];
-        const vgMoves = movesForPokemon[latestVg];
-
-        if (vgMoves.lv) {
-            vgMoves.lv.forEach(([lv, name]) => {
-                const lvStr = lv > 0 ? `Lv.${lv}` : '기본';
-                movesHtml += `<div class="move-row"><span class="move-level">${lvStr}</span><span class="move-name">${name}</span></div>`;
-            });
+        const mvGenGroups = {};
+        for (const vgId of Object.keys(movesForPokemon)) {
+            const info = VG_INFO[vgId];
+            const gen = info ? info.gen : 0;
+            if (!mvGenGroups[gen]) mvGenGroups[gen] = [];
+            mvGenGroups[gen].push(parseInt(vgId));
         }
+        const mvGenKeys = Object.keys(mvGenGroups).map(Number);
+        const mvOrdered = orderGens(mvGenKeys);
+
+        movesHtml += '<div class="tab-container">';
+        movesHtml += '<div class="tab-bar">';
+        mvOrdered.forEach((gen, i) => {
+            const active = i === 0 ? ' active' : '';
+            movesHtml += `<button class="tab-btn${active}" data-tab="mv-${gen}">${gen}세대</button>`;
+        });
+        movesHtml += '</div>';
+
+        mvOrdered.forEach((gen, i) => {
+            const active = i === 0 ? ' active' : '';
+            const vgIds = mvGenGroups[gen].sort((a, b) => b - a);
+            const latestVg = vgIds[0];
+            const vgMoves = movesForPokemon[String(latestVg)];
+            const vgName = VG_INFO[latestVg] ? VG_INFO[latestVg].name : '';
+
+            movesHtml += `<div class="tab-content${active}" data-tab="mv-${gen}">`;
+            if (vgName) movesHtml += `<div class="tab-source">${vgName} 기준</div>`;
+
+            if (vgMoves.lv && vgMoves.lv.length > 0) {
+                movesHtml += '<div class="moves-subtitle">레벨업</div>';
+                vgMoves.lv.forEach(([lv, name]) => {
+                    const lvStr = lv > 0 ? `Lv.${lv}` : '기본';
+                    movesHtml += `<div class="move-row"><span class="move-level">${lvStr}</span><span class="move-name">${name}</span></div>`;
+                });
+            }
+
+            if (vgMoves.tm && vgMoves.tm.length > 0) {
+                movesHtml += '<div class="moves-subtitle">기술머신</div>';
+                vgMoves.tm.forEach(name => {
+                    movesHtml += `<div class="move-row"><span class="move-level">TM</span><span class="move-name">${name}</span></div>`;
+                });
+            }
+
+            movesHtml += '</div>';
+        });
+        movesHtml += '</div>';
     }
     if (!movesHtml) {
         movesHtml = '<div style="font-size:13px; color:var(--text-dim);">기술 데이터 없음</div>';
@@ -490,7 +617,10 @@ function showDetail(p) {
 
             <div class="detail-section">
                 <div class="detail-section-title">특성</div>
-                <div style="font-size:13px;">${abilityStr}</div>
+                <table class="ability-table">
+                    <thead><tr><th>이름</th><th>설명</th></tr></thead>
+                    <tbody>${abilityRows}</tbody>
+                </table>
             </div>
 
             <div class="detail-section">
@@ -514,12 +644,13 @@ function showDetail(p) {
             </div>
 
             <div class="detail-section">
-                <div class="detail-section-title">레벨업 기술</div>
+                <div class="detail-section-title">기술</div>
                 ${movesHtml}
             </div>
         </div>
     `;
 
+    setupTabs(detailPanel);
     detailOverlay.classList.remove('hidden');
     detailPanel.scrollTop = 0;
     document.body.classList.add('no-scroll');

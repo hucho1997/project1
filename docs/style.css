@@ -720,6 +720,75 @@ body.no-scroll {
     color: var(--text-dim);
 }
 
+/* 특성 테이블 */
+.ability-table {
+    width: 100%;
+    font-size: 13px;
+    border-collapse: collapse;
+}
+.ability-table th {
+    text-align: left;
+    color: var(--text-dim);
+    font-weight: 400;
+    padding: 4px 8px;
+    border-bottom: 1px solid #2a2a2a;
+}
+.ability-table td {
+    padding: 4px 8px;
+}
+.ability-hidden td {
+    color: var(--text-dim);
+}
+
+/* 탭 UI */
+.tab-container {
+    margin-top: 4px;
+}
+.tab-bar {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 8px;
+}
+.tab-bar::-webkit-scrollbar {
+    height: 0;
+}
+.tab-btn {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+}
+.tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+.tab-content {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}
+.tab-source {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+}
+.moves-subtitle {
+    font-size: 12px;
+    color: var(--accent);
+    margin-top: 8px;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
 /* 출현 위치 */
 .encounter-version {
     font-size: 13px;
