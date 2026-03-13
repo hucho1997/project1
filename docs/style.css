@@ -622,10 +622,9 @@ body.no-scroll {
     flex: 1;
 }
 
-.detail-name-en {
-    font-size: 13px;
-    color: var(--text-dim);
-    margin-bottom: 12px;
+.detail-header-en {
+    font-weight: 400;
+    margin-left: 6px;
 }
 
 .detail-types {
@@ -890,6 +889,33 @@ body.no-scroll {
     margin-bottom: 8px;
     padding-bottom: 4px;
     border-bottom: 1px solid #2a2a2a;
+}
+
+/* 버전 서브탭 (기술 내 버전 차이) */
+.version-tabs {
+    margin-bottom: 4px;
+}
+.version-tab-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 8px;
+}
+.version-tab-btn {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 11px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+}
+.version-tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
 }
 
 /* 데이터 없음 */

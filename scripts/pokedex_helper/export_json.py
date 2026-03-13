@@ -447,6 +447,176 @@ def export_locations():
     print(f'  → {len(regions)}개 지방, {loc_count}개 맵 저장 완료')
 
 
+def export_past_data():
+    """세대별 종족값/특성/타입 변경 이력"""
+    print('세대별 변경 이력 추출 중...')
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # --- stats_past ---
+    # generation_id = "이 세대까지 적용된 값" (이후 세대에서 변경됨)
+    cur.execute('''
+        SELECT CAST(psp.pokemon_id AS INTEGER),
+               CAST(psp.stat_id AS INTEGER),
+               s.identifier,
+               CAST(psp.base_stat AS INTEGER),
+               CAST(psp.generation_id AS INTEGER)
+        FROM pokemon_stats_past psp
+        JOIN stats s ON psp.stat_id = s.id
+        ORDER BY psp.pokemon_id, psp.generation_id, psp.stat_id
+    ''')
+    stats_past = {}
+    for r in cur.fetchall():
+        pid, stat_id, stat_ident, val, gen = r
+        key = str(pid)
+        stat_key = stat_ident.replace('special-attack', 'sp-attack').replace('special-defense', 'sp-defense')
+        if key not in stats_past:
+            stats_past[key] = {}
+        gen_key = str(gen)
+        if gen_key not in stats_past[key]:
+            stats_past[key][gen_key] = {}
+        stats_past[key][gen_key][stat_key] = val
+
+    # --- abilities_past ---
+    cur.execute('''
+        SELECT CAST(pap.pokemon_id AS INTEGER),
+               CAST(pap.generation_id AS INTEGER),
+               CAST(pap.slot AS INTEGER),
+               pap.ability_id,
+               CASE WHEN pap.ability_id IS NOT NULL THEN an.name ELSE NULL END as ability_name
+        FROM pokemon_abilities_past pap
+        LEFT JOIN ability_names an ON pap.ability_id = an.ability_id AND an.local_language_id=?
+        ORDER BY pap.pokemon_id, pap.generation_id, pap.slot
+    ''', (LANG_KO,))
+    abilities_past = {}
+    for r in cur.fetchall():
+        pid, gen, slot, ability_id, name = r
+        key = str(pid)
+        gen_key = str(gen)
+        if key not in abilities_past:
+            abilities_past[key] = {}
+        if gen_key not in abilities_past[key]:
+            abilities_past[key][gen_key] = {}
+        # slot 3 = hidden, slot 1,2 = normal
+        if slot == 3:
+            abilities_past[key][gen_key]['hidden'] = name  # None if didn't exist
+        else:
+            if 'normal' not in abilities_past[key][gen_key]:
+                abilities_past[key][gen_key]['normal'] = []
+            if name is not None:
+                abilities_past[key][gen_key]['normal'].append(name)
+
+    # --- types_past ---
+    cur.execute('''
+        SELECT CAST(ptp.pokemon_id AS INTEGER),
+               CAST(ptp.generation_id AS INTEGER),
+               t.identifier,
+               CAST(ptp.slot AS INTEGER)
+        FROM pokemon_types_past ptp
+        JOIN types t ON ptp.type_id = t.id
+        ORDER BY ptp.pokemon_id, ptp.generation_id, ptp.slot
+    ''')
+    types_past = {}
+    for r in cur.fetchall():
+        pid, gen, type_ident, slot = r
+        key = str(pid)
+        gen_key = str(gen)
+        if key not in types_past:
+            types_past[key] = {}
+        if gen_key not in types_past[key]:
+            types_past[key][gen_key] = []
+        types_past[key][gen_key].append(type_ident)
+
+    conn.close()
+
+    save_json(os.path.join(OUT_DIR, 'stats_past.json'), stats_past)
+    save_json(os.path.join(OUT_DIR, 'abilities_past.json'), abilities_past)
+    save_json(os.path.join(OUT_DIR, 'types_past.json'), types_past)
+    print(f'  → stats_past: {len(stats_past)}종, abilities_past: {len(abilities_past)}종, types_past: {len(types_past)}종 저장 완료')
+
+
+def export_forms():
+    """폼별 종족값/특성/타입 (메가진화, 리전폼, 사이즈 차이 등)"""
+    print('폼 데이터 추출 중...')
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # 기본 폼이 아닌 pokemon 엔트리 (species_id 기준 그룹화)
+    cur.execute('''
+        SELECT CAST(p.id AS INTEGER),
+               CAST(p.species_id AS INTEGER),
+               pf.form_identifier,
+               COALESCE(pfn.pokemon_name, pfn.form_name, pf.form_identifier, '') as form_name
+        FROM pokemon p
+        JOIN pokemon_forms pf ON pf.pokemon_id = p.id
+        LEFT JOIN pokemon_form_names pfn ON pf.id = pfn.pokemon_form_id AND pfn.local_language_id=?
+        WHERE p.is_default = 0
+        ORDER BY p.species_id, p.id
+    ''', (LANG_KO,))
+
+    forms = {}
+    for r in cur.fetchall():
+        pid, sid, form_ident, form_name = r
+        key = str(sid)
+        if key not in forms:
+            forms[key] = []
+
+        # 종족값
+        cur.execute('''
+            SELECT s.identifier, CAST(ps2.base_stat AS INTEGER)
+            FROM pokemon_stats ps2
+            JOIN stats s ON ps2.stat_id = s.id
+            WHERE ps2.pokemon_id=?
+            ORDER BY CAST(s.id AS INTEGER)
+        ''', (pid,))
+        stats = {}
+        for sr in cur.fetchall():
+            stat_key = sr[0].replace('special-attack', 'sp-attack').replace('special-defense', 'sp-defense')
+            stats[stat_key] = sr[1]
+
+        # 특성
+        cur.execute('''
+            SELECT an.name, pa.is_hidden FROM pokemon_abilities pa
+            JOIN ability_names an ON pa.ability_id = an.ability_id AND an.local_language_id=?
+            WHERE pa.pokemon_id=?
+            ORDER BY CAST(pa.slot AS INTEGER)
+        ''', (LANG_KO, pid))
+        abilities = []
+        hidden = None
+        for ar in cur.fetchall():
+            if ar[1] == '1':
+                hidden = ar[0]
+            else:
+                abilities.append(ar[0])
+
+        # 타입
+        cur.execute('''
+            SELECT t.identifier FROM pokemon_types pt
+            JOIN types t ON pt.type_id = t.id
+            WHERE pt.pokemon_id=?
+            ORDER BY CAST(pt.slot AS INTEGER)
+        ''', (pid,))
+        types = [tr[0] for tr in cur.fetchall()]
+
+        entry = {
+            'pid': pid,
+            'form': form_ident or '',
+            'name': form_name or form_ident or '',
+            'types': types,
+            'stats': stats,
+            'abilities': abilities,
+        }
+        if hidden:
+            entry['hiddenAbility'] = hidden
+
+        forms[key].append(entry)
+
+    conn.close()
+
+    save_json(os.path.join(OUT_DIR, 'forms.json'), forms)
+    print(f'  → {len(forms)}종의 폼 데이터 저장 완료')
+
+
 def export_dex_numbers():
     """도감별 포켓몬 번호"""
     print('도감 번호 추출 중...')
@@ -485,6 +655,8 @@ def main():
     export_encounters()
     export_moves()
     export_locations()
+    export_past_data()
+    export_forms()
 
     print('=' * 40)
     print('  완료!')

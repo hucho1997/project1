@@ -176,10 +176,13 @@ let evolutionChains = {};
 let encounterData = {};
 let movesData = {};
 let dexData = {};
+let statsPast = {};
+let abilitiesPast = {};
+let typesPast = {};
 
 // ─── 상태 ───
 let currentView = 'grid';
-let currentDex = { id: 1, gen: null }; // id: dex_id, gen: auto-select gen for detail
+let currentDex = { id: 1, gen: null };
 let filters = {
     name: '',
     gens: new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]),
@@ -199,29 +202,78 @@ async function init() {
     filteredPokemon = [...allPokemon];
     renderGrid();
 
-    const [evo, enc, mov, dex] = await Promise.all([
+    const [evo, enc, mov, dex, sp, ap, tp] = await Promise.all([
         loadJSON('data/evolution_chains.json'),
         loadJSON('data/encounters.json'),
         loadJSON('data/moves.json'),
         loadJSON('data/dex_numbers.json'),
+        loadJSON('data/stats_past.json'),
+        loadJSON('data/abilities_past.json'),
+        loadJSON('data/types_past.json'),
     ]);
     evolutionChains = evo;
     encounterData = enc;
     movesData = mov;
     dexData = dex;
+    statsPast = sp;
+    abilitiesPast = ap;
+    typesPast = tp;
 
     buildDexTree();
+}
+
+// ─── 세대별 과거 데이터 조회 ───
+// past 데이터의 gen = "이 세대까지 적용된 값" → gen >= N인 가장 작은 값을 사용
+function getStatsForGen(pokemonId, gen, currentStats) {
+    const past = statsPast[String(pokemonId)];
+    if (!past) return currentStats;
+
+    const pastGens = Object.keys(past).map(Number).filter(g => g >= gen).sort((a, b) => a - b);
+    if (pastGens.length === 0) return currentStats;
+
+    const pastEntry = past[String(pastGens[0])];
+    const result = { ...currentStats };
+    for (const [key, val] of Object.entries(pastEntry)) {
+        if (key === 'special') {
+            result['sp-attack'] = val;
+            result['sp-defense'] = val;
+        } else {
+            result[key] = val;
+        }
+    }
+    return result;
+}
+
+function getAbilitiesForGen(pokemonId, gen, currentAbilities, currentHidden) {
+    const past = abilitiesPast[String(pokemonId)];
+    if (!past) return { abilities: currentAbilities, hidden: currentHidden };
+
+    const pastGens = Object.keys(past).map(Number).filter(g => g >= gen).sort((a, b) => a - b);
+    if (pastGens.length === 0) return { abilities: currentAbilities, hidden: currentHidden };
+
+    const pastEntry = past[String(pastGens[0])];
+    return {
+        abilities: 'normal' in pastEntry ? pastEntry.normal : currentAbilities,
+        hidden: 'hidden' in pastEntry ? pastEntry.hidden : currentHidden,
+    };
+}
+
+function getTypesForGen(pokemonId, gen, currentTypes) {
+    const past = typesPast[String(pokemonId)];
+    if (!past) return currentTypes;
+
+    const pastGens = Object.keys(past).map(Number).filter(g => g >= gen).sort((a, b) => a - b);
+    if (pastGens.length === 0) return currentTypes;
+
+    return past[String(pastGens[0])];
 }
 
 // ─── 도감 트리 생성 ───
 function buildDexTree() {
     const container = $('#dexTreeContainer');
     let html = '<div class="dex-tree-label">도감</div>';
-
-    // 전국도감
     html += '<div class="dex-item active" data-dex-id="1" data-dex-gen="">전국도감</div>';
 
-    // 지역도감
     DEX_TREE.forEach(region => {
         html += `<div class="dex-region" data-region>${region.name}</div>`;
         html += '<div class="dex-region-children">';
@@ -233,21 +285,18 @@ function buildDexTree() {
 
     container.innerHTML = html;
 
-    // 지역 토글
     container.querySelectorAll('.dex-region').forEach(region => {
         region.onclick = () => region.classList.toggle('open');
     });
 
-    // 도감 선택
     container.querySelectorAll('.dex-item').forEach(item => {
         item.onclick = () => {
             container.querySelectorAll('.dex-item').forEach(i => i.classList.remove('active'));
             item.classList.add('active');
-
-            const dexId = parseInt(item.dataset.dexId);
-            const dexGen = item.dataset.dexGen ? parseInt(item.dataset.dexGen) : null;
-            currentDex = { id: dexId, gen: dexGen };
-
+            currentDex = {
+                id: parseInt(item.dataset.dexId),
+                gen: item.dataset.dexGen ? parseInt(item.dataset.dexGen) : null,
+            };
             applyDexAndFilters();
             closeSideMenu();
         };
@@ -259,18 +308,14 @@ function applyDexAndFilters() {
     let pokemon;
 
     if (currentDex.id === 1) {
-        // 전국도감: 전체 포켓몬, 전국도감 번호 순
         pokemon = allPokemon.map(p => ({ ...p, displayNum: p.id }));
     } else {
-        // 지역도감: 해당 도감에 포함된 포켓몬만, 지역도감 번호로
         const dexEntries = dexData[String(currentDex.id)];
         if (!dexEntries) {
             filteredPokemon = [];
             renderGrid();
             return;
         }
-
-        // dexEntries: [[species_id, dex_number], ...]
         const dexMap = new Map();
         dexEntries.forEach(([speciesId, dexNum]) => dexMap.set(speciesId, dexNum));
 
@@ -280,12 +325,9 @@ function applyDexAndFilters() {
                 pokemon.push({ ...p, displayNum: dexMap.get(p.id) });
             }
         });
-
-        // 지역도감 번호순 정렬
         pokemon.sort((a, b) => a.displayNum - b.displayNum);
     }
 
-    // 필터 적용
     filteredPokemon = pokemon.filter(p => {
         if (filters.name) {
             const match = p.name.includes(filters.name)
@@ -345,7 +387,6 @@ btnSearch.onclick = openFilterPanel;
 filterOverlay.onclick = closeFilterPanel;
 $('#filterClose').onclick = closeFilterPanel;
 
-// 오버레이 열린 상태에서 배경 터치 스크롤 방지
 document.addEventListener('touchmove', (e) => {
     if (!document.body.classList.contains('no-scroll')) return;
     const scrollable = e.target.closest('.filter-scroll, .detail-panel, .side-menu');
@@ -362,8 +403,6 @@ filterApply.onclick = () => {
 
 function applyFilters() {
     filters.name = filterNameInput.value.trim().toLowerCase();
-
-    // 종족값 필터 수집
     filters.stats = {};
     $$('.stat-input').forEach(input => {
         const stat = input.dataset.stat;
@@ -374,7 +413,6 @@ function applyFilters() {
             filters.stats[stat][bound] = parseInt(val);
         }
     });
-
     applyDexAndFilters();
 }
 
@@ -386,12 +424,10 @@ filterResetAll.onclick = () => {
     filters.types = new Set();
     filters.ev = new Set();
     filters.stats = {};
-
     $$('.chip[data-gen]').forEach(c => c.classList.add('active'));
     $$('.chip-type').forEach(c => c.classList.remove('active'));
     $$('.chip[data-ev]').forEach(c => c.classList.remove('active'));
     $$('.stat-input').forEach(input => input.value = '');
-
     applyDexAndFilters();
 };
 
@@ -571,12 +607,38 @@ function renderEvolutionChain(chain, currentId) {
     return html;
 }
 
-// ─── 세대별 기술 생성 ───
+// ─── 기술 데이터 HTML (단일 버전 그룹) ───
+function buildMoveDataHtml(d) {
+    let html = '';
+    if (d.lv && d.lv.length > 0) {
+        html += '<div class="moves-subtitle">레벨업</div>';
+        d.lv.forEach(([lv, name]) => {
+            const lvStr = lv > 0 ? `Lv.${lv}` : '기본';
+            html += `<div class="move-row"><span class="move-level">${lvStr}</span><span class="move-name">${name}</span></div>`;
+        });
+    }
+    if (d.tm && d.tm.length > 0) {
+        html += '<div class="moves-subtitle">기술머신</div>';
+        const sorted = [...d.tm].sort((a, b) => parseInt(a[0].replace(/\D/g, '')) - parseInt(b[0].replace(/\D/g, '')));
+        sorted.forEach(([num, name]) => {
+            html += `<div class="move-row"><span class="move-level">${num}</span><span class="move-name">${name}</span></div>`;
+        });
+    }
+    if (d.hm && d.hm.length > 0) {
+        html += '<div class="moves-subtitle">비전머신</div>';
+        const sorted = [...d.hm].sort((a, b) => parseInt(a[0].replace(/\D/g, '')) - parseInt(b[0].replace(/\D/g, '')));
+        sorted.forEach(([num, name]) => {
+            html += `<div class="move-row"><span class="move-level">${num}</span><span class="move-name">${name}</span></div>`;
+        });
+    }
+    return html;
+}
+
+// ─── 세대별 기술 (버전 서브탭 포함) ───
 function buildMovesForGen(pokemonId, gen) {
     const movesForPokemon = movesData[String(pokemonId)];
     if (!movesForPokemon) return '<div class="no-data">기술 데이터 없음</div>';
 
-    // 이 세대의 버전 그룹 찾기
     const vgIds = [];
     for (const vgId of Object.keys(movesForPokemon)) {
         const info = VG_INFO[vgId];
@@ -586,7 +648,7 @@ function buildMovesForGen(pokemonId, gen) {
 
     vgIds.sort((a, b) => a - b);
 
-    // 동일한 기술 데이터를 가진 VG 그룹화
+    // 동일 데이터를 가진 VG 그룹화
     const groups = [];
     const used = new Set();
     for (const vgId of vgIds) {
@@ -605,49 +667,35 @@ function buildMovesForGen(pokemonId, gen) {
         groups.push(group);
     }
 
-    const showLabels = groups.length > 1;
-    let html = '';
-
-    for (const group of groups) {
-        if (showLabels) {
-            const names = group.vgIds.map(id => VG_INFO[id]?.name || `VG${id}`).join(' / ');
-            html += `<div class="moves-version-label">${names}</div>`;
-        }
-
-        const d = group.data;
-
-        if (d.lv && d.lv.length > 0) {
-            html += '<div class="moves-subtitle">레벨업</div>';
-            d.lv.forEach(([lv, name]) => {
-                const lvStr = lv > 0 ? `Lv.${lv}` : '기본';
-                html += `<div class="move-row"><span class="move-level">${lvStr}</span><span class="move-name">${name}</span></div>`;
-            });
-        }
-
-        if (d.tm && d.tm.length > 0) {
-            html += '<div class="moves-subtitle">기술머신</div>';
-            d.tm.forEach(([num, name]) => {
-                html += `<div class="move-row"><span class="move-level">${num}</span><span class="move-name">${name}</span></div>`;
-            });
-        }
-
-        if (d.hm && d.hm.length > 0) {
-            html += '<div class="moves-subtitle">비전머신</div>';
-            d.hm.forEach(([num, name]) => {
-                html += `<div class="move-row"><span class="move-level">${num}</span><span class="move-name">${name}</span></div>`;
-            });
-        }
+    // 1개 그룹이면 서브탭 불필요
+    if (groups.length === 1) {
+        return buildMoveDataHtml(groups[0].data);
     }
+
+    // 여러 그룹 → 버전 서브탭
+    let html = '<div class="version-tabs"><div class="version-tab-bar">';
+    groups.forEach((group, i) => {
+        const names = group.vgIds.map(id => VG_INFO[id]?.name || `VG${id}`).join(' / ');
+        const active = i === 0 ? ' active' : '';
+        html += `<button class="version-tab-btn${active}" data-vidx="${i}">${names}</button>`;
+    });
+    html += '</div></div>';
+
+    groups.forEach((group, i) => {
+        const display = i === 0 ? '' : ' style="display:none"';
+        html += `<div class="version-content" data-vidx="${i}"${display}>`;
+        html += buildMoveDataHtml(group.data);
+        html += '</div>';
+    });
 
     return html;
 }
 
-// ─── 세대별 출현 위치 생성 ───
+// ─── 세대별 출현 위치 ───
 function buildEncountersForGen(pokemonId, gen) {
     const enc = encounterData[String(pokemonId)];
     if (!enc) return '<div class="no-data">출현 데이터 없음</div>';
 
-    // 이 세대의 버전만 필터
     let hasData = false;
     let html = '';
     for (const [ver, locs] of Object.entries(enc)) {
@@ -664,27 +712,29 @@ function buildEncountersForGen(pokemonId, gen) {
     return hasData ? html : '<div class="no-data">이 세대의 출현 데이터 없음</div>';
 }
 
-// ─── 세대별 동적 컨텐츠 생성 ───
-function buildGenContent(pokemonId, gen) {
-    let html = '';
-    html += '<div class="gen-section-title">기술</div>';
-    html += buildMovesForGen(pokemonId, gen);
-    html += '<div class="gen-section-title">포획 위치</div>';
-    html += buildEncountersForGen(pokemonId, gen);
-    return html;
-}
-
-// ─── 상세 패널 ───
-function showDetail(p, autoGen) {
-    const typeBadges = p.types.map(t =>
+// ─── 세대별 전체 컨텐츠 (타입+특성+종족값+노력치+기술+출현) ───
+function buildAllGenContent(p, gen) {
+    // 타입
+    const types = getTypesForGen(p.pid, gen, p.types);
+    const typeBadges = types.map(t =>
         `<span class="type-badge type-${t}">${TYPE_KO[t] || t}</span>`
     ).join('');
 
-    const statOrder = ['hp', 'attack', 'defense', 'sp-attack', 'sp-defense', 'speed'];
-    const total = statOrder.reduce((sum, s) => sum + (p.stats[s] || 0), 0);
+    // 특성
+    const { abilities, hidden } = getAbilitiesForGen(p.pid, gen, p.abilities, p.hiddenAbility || null);
+    let abilityRows = abilities.map(a =>
+        `<tr><td>${a}</td><td></td></tr>`
+    ).join('');
+    if (hidden) {
+        abilityRows += `<tr class="ability-hidden"><td>${hidden} (숨겨진 특성)</td><td></td></tr>`;
+    }
 
+    // 종족값
+    const stats = getStatsForGen(p.pid, gen, p.stats);
+    const statOrder = ['hp', 'attack', 'defense', 'sp-attack', 'sp-defense', 'speed'];
+    const total = statOrder.reduce((sum, s) => sum + (stats[s] || 0), 0);
     const statRows = statOrder.map(s => {
-        const val = p.stats[s] || 0;
+        const val = stats[s] || 0;
         const pct = Math.min(val / 160 * 100, 100);
         const color = val >= 100 ? '#63bc5a' : val >= 60 ? '#f4d23c' : '#e53935';
         return `
@@ -698,7 +748,7 @@ function showDetail(p, autoGen) {
         `;
     }).join('');
 
-    // 노력치
+    // 노력치 (세대 무관, 현재 값 사용)
     const evParts = [];
     if (p.ev) {
         Object.entries(p.ev).forEach(([stat, val]) => {
@@ -707,19 +757,52 @@ function showDetail(p, autoGen) {
     }
     const evDisplay = evParts.length > 0 ? evParts.join('  ') : '없음';
 
-    // 특성 (테이블, thead 없음)
-    let abilityRows = p.abilities.map(a =>
-        `<tr><td>${a}</td><td></td></tr>`
-    ).join('');
-    if (p.hiddenAbility) {
-        abilityRows += `<tr class="ability-hidden"><td>${p.hiddenAbility} (숨겨진 특성)</td><td></td></tr>`;
-    }
+    let html = '';
+    html += `<div class="detail-types">${typeBadges}</div>`;
 
-    // 진화
-    const chain = findEvolutionChain(p.id);
-    const evoHtml = renderEvolutionChain(chain, p.id);
+    html += '<div class="detail-section">';
+    html += '<div class="detail-section-title">특성</div>';
+    html += `<table class="ability-table"><tbody>${abilityRows}</tbody></table>`;
+    html += '</div>';
 
-    // 사용 가능한 세대 목록 (기술 또는 출현 데이터가 있는 세대)
+    html += '<div class="detail-section">';
+    html += `<div class="detail-section-title">종족값 (합계: ${total})</div>`;
+    html += statRows;
+    html += '</div>';
+
+    html += '<div class="detail-section">';
+    html += '<div class="detail-section-title">격파 시 노력치</div>';
+    html += `<div class="ev-row">${evDisplay}</div>`;
+    html += '</div>';
+
+    html += '<div class="gen-section-title">기술</div>';
+    html += buildMovesForGen(p.id, gen);
+
+    html += '<div class="gen-section-title">포획 위치</div>';
+    html += buildEncountersForGen(p.id, gen);
+
+    return html;
+}
+
+// ─── 버전 서브탭 바인딩 ───
+function bindVersionTabs(container) {
+    container.querySelectorAll('.version-tab-btn').forEach(btn => {
+        btn.onclick = () => {
+            const bar = btn.closest('.version-tabs');
+            const parent = bar.parentElement;
+            bar.querySelectorAll('.version-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const idx = btn.dataset.vidx;
+            parent.querySelectorAll('.version-content').forEach(vc => {
+                vc.style.display = vc.dataset.vidx === idx ? '' : 'none';
+            });
+        };
+    });
+}
+
+// ─── 상세 패널 ───
+function showDetail(p, autoGen) {
+    // 사용 가능한 세대
     const availableGens = new Set();
     const movesForPokemon = movesData[String(p.id)];
     if (movesForPokemon) {
@@ -737,7 +820,6 @@ function showDetail(p, autoGen) {
 
     const genList = [...availableGens].sort((a, b) => a - b);
 
-    // 기본 선택 세대: autoGen이 있으면 해당 세대, 없으면 최신 세대
     let defaultGen;
     if (autoGen && availableGens.has(autoGen)) {
         defaultGen = autoGen;
@@ -745,7 +827,7 @@ function showDetail(p, autoGen) {
         defaultGen = genList.length > 0 ? genList[genList.length - 1] : null;
     }
 
-    // 세대 탭 HTML
+    // 세대 탭
     let genTabsHtml = '';
     if (genList.length > 0) {
         genTabsHtml = '<div class="gen-tabs"><div class="tab-bar">';
@@ -756,56 +838,45 @@ function showDetail(p, autoGen) {
         genTabsHtml += '</div></div>';
     }
 
-    // 세대별 동적 컨텐츠
-    const genContentHtml = defaultGen ? buildGenContent(p.id, defaultGen) : '<div class="no-data">기술/출현 데이터 없음</div>';
+    // 진화 (세대 무관)
+    const chain = findEvolutionChain(p.id);
+    const evoHtml = renderEvolutionChain(chain, p.id);
+
+    // 세대별 컨텐츠
+    const genContentHtml = defaultGen ? buildAllGenContent(p, defaultGen) : '<div class="no-data">데이터 없음</div>';
 
     detailPanel.innerHTML = `
         <div class="detail-header">
             <div class="detail-header-info">
-                <span class="detail-header-num">#${String(p.id).padStart(4, '0')}</span>${p.name}
+                <span class="detail-header-num">#${String(p.id).padStart(4, '0')}</span>${p.name} <span class="detail-header-en">${p.nameEn}</span>
             </div>
             <button class="detail-close-btn" id="detailClose">&times;</button>
         </div>
         <div class="detail-body">
-            <div class="detail-name-en">${p.nameEn}</div>
-            <div class="detail-types">${typeBadges}</div>
-
-            <div class="detail-section">
-                <div class="detail-section-title">특성</div>
-                <table class="ability-table">
-                    <tbody>${abilityRows}</tbody>
-                </table>
-            </div>
-
-            <div class="detail-section">
-                <div class="detail-section-title">종족값 (합계: ${total})</div>
-                ${statRows}
-            </div>
-
-            <div class="detail-section">
-                <div class="detail-section-title">격파 시 노력치</div>
-                <div class="ev-row">${evDisplay}</div>
-            </div>
+            ${genTabsHtml}
+            <div id="genContent">${genContentHtml}</div>
 
             <div class="detail-section">
                 <div class="detail-section-title">진화</div>
                 ${evoHtml}
             </div>
-
-            ${genTabsHtml}
-            <div id="genContent">${genContentHtml}</div>
         </div>
     `;
 
-    // 세대 탭 클릭 핸들러
+    // 세대 탭 클릭
     detailPanel.querySelectorAll('.gen-tabs .tab-btn').forEach(btn => {
         btn.onclick = () => {
             detailPanel.querySelectorAll('.gen-tabs .tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             const gen = parseInt(btn.dataset.gen);
-            document.getElementById('genContent').innerHTML = buildGenContent(p.id, gen);
+            const content = document.getElementById('genContent');
+            content.innerHTML = buildAllGenContent(p, gen);
+            bindVersionTabs(content);
         };
     });
+
+    // 초기 버전 서브탭 바인딩
+    bindVersionTabs(document.getElementById('genContent'));
 
     detailOverlay.classList.remove('hidden');
     detailPanel.scrollTop = 0;
