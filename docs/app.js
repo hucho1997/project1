@@ -76,15 +76,25 @@ let filters = {
     stats: {},
 };
 
-// ─── 데이터 로드 (전역 변수에서 읽기) ───
-function init() {
-    allPokemon = typeof POKEMON_LIST !== 'undefined' ? POKEMON_LIST : [];
-    evolutionChains = typeof EVOLUTION_CHAINS !== 'undefined' ? EVOLUTION_CHAINS : {};
-    encounterData = typeof ENCOUNTER_DATA !== 'undefined' ? ENCOUNTER_DATA : {};
-    movesData = typeof MOVES_DATA !== 'undefined' ? MOVES_DATA : {};
+// ─── JSON 로드 ───
+async function loadJSON(path) {
+    const res = await fetch(path);
+    return res.json();
+}
 
+async function init() {
+    allPokemon = await loadJSON('data/pokemon_list.json');
     filteredPokemon = [...allPokemon];
     renderGrid();
+
+    const [evo, enc, mov] = await Promise.all([
+        loadJSON('data/evolution_chains.json'),
+        loadJSON('data/encounters.json'),
+        loadJSON('data/moves.json'),
+    ]);
+    evolutionChains = evo;
+    encounterData = enc;
+    movesData = mov;
 }
 
 // ─── 필터 패널 열기/닫기 ───
