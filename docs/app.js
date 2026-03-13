@@ -118,6 +118,17 @@ function closeFilterPanel() {
 
 btnSearch.onclick = openFilterPanel;
 filterOverlay.onclick = closeFilterPanel;
+$('#filterClose').onclick = closeFilterPanel;
+
+// 오버레이 열린 상태에서 배경 터치 스크롤 방지
+document.addEventListener('touchmove', (e) => {
+    if (!document.body.classList.contains('no-scroll')) return;
+    // 스크롤 가능한 패널 내부 터치는 허용
+    const scrollable = e.target.closest('.filter-scroll, .detail-panel, .side-menu');
+    if (!scrollable) {
+        e.preventDefault();
+    }
+}, { passive: false });
 
 // ─── 필터 적용 ───
 filterApply.onclick = () => {

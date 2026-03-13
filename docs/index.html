@@ -37,135 +37,140 @@
     <!-- 검색/필터 패널 -->
     <div class="filter-overlay hidden" id="filterOverlay"></div>
     <div class="filter-panel hidden" id="filterPanel">
-        <div class="filter-top">
-            <button class="filter-btn-search" id="filterApply">검색</button>
-            <button class="filter-btn-reset" id="filterResetAll">전체 초기화</button>
-        </div>
-
-        <!-- 이름/번호 검색 -->
-        <div class="filter-search-input">
-            <input type="text" id="filterNameInput" placeholder="이름 또는 번호 검색">
-        </div>
-
-        <!-- 세대 (항상 펼침) -->
-        <div class="filter-group open" data-always-open="true">
-            <div class="filter-title">
-                <span class="filter-title-text">세대</span>
-                <button class="filter-reset" data-group="gen">↺</button>
+        <!-- 고정 헤더 -->
+        <div class="filter-header">
+            <div class="filter-top">
+                <button class="filter-btn-search" id="filterApply">검색</button>
+                <button class="filter-btn-reset" id="filterResetAll">전체 초기화</button>
+                <button class="filter-close-btn" id="filterClose">&times;</button>
             </div>
-            <div class="filter-body">
-                <div class="chip-group" id="genChips"></div>
+            <div class="filter-search-input">
+                <input type="text" id="filterNameInput" placeholder="이름 또는 번호 검색">
             </div>
         </div>
 
-        <!-- 도감 (항상 펼침) -->
-        <div class="filter-group open" data-always-open="true">
-            <div class="filter-title">
-                <span class="filter-title-text">도감</span>
-                <button class="filter-reset" data-group="dex">↺</button>
+        <!-- 스크롤 영역 -->
+        <div class="filter-scroll">
+            <!-- 세대 (항상 펼침) -->
+            <div class="filter-group open" data-always-open="true">
+                <div class="filter-title">
+                    <span class="filter-title-text">세대</span>
+                    <button class="filter-reset" data-group="gen">↺</button>
+                </div>
+                <div class="filter-body">
+                    <div class="chip-group" id="genChips"></div>
+                </div>
             </div>
-            <div class="filter-body">
-                <select id="dexSelect" class="filter-select">
-                    <option value="national">전국도감</option>
-                </select>
-            </div>
-        </div>
 
-        <!-- 타입 (항상 펼침) -->
-        <div class="filter-group open" data-always-open="true">
-            <div class="filter-title">
-                <span class="filter-title-text">타입</span>
-                <button class="filter-reset" data-group="type">↺</button>
+            <!-- 도감 (항상 펼침) -->
+            <div class="filter-group open" data-always-open="true">
+                <div class="filter-title">
+                    <span class="filter-title-text">도감</span>
+                    <button class="filter-reset" data-group="dex">↺</button>
+                </div>
+                <div class="filter-body">
+                    <select id="dexSelect" class="filter-select">
+                        <option value="national">전국도감</option>
+                    </select>
+                </div>
             </div>
-            <div class="filter-body">
-                <div class="chip-group" id="typeChips"></div>
-            </div>
-        </div>
 
-        <!-- 알그룹 (접힘) -->
-        <div class="filter-group">
-            <div class="filter-title">
-                <span class="filter-title-text" data-toggle>알그룹</span>
-                <button class="filter-reset" data-group="egggroup">↺</button>
+            <!-- 타입 (항상 펼침) -->
+            <div class="filter-group open" data-always-open="true">
+                <div class="filter-title">
+                    <span class="filter-title-text">타입</span>
+                    <button class="filter-reset" data-group="type">↺</button>
+                </div>
+                <div class="filter-body">
+                    <div class="chip-group" id="typeChips"></div>
+                </div>
             </div>
-            <div class="filter-body">
-                <div class="chip-group" id="eggGroupChips"></div>
-            </div>
-        </div>
 
-        <!-- 특성 (접힘) -->
-        <div class="filter-group">
-            <div class="filter-title">
-                <span class="filter-title-text" data-toggle>특성</span>
-                <button class="filter-reset" data-group="ability">↺</button>
+            <!-- 알그룹 (접힘) -->
+            <div class="filter-group">
+                <div class="filter-title">
+                    <span class="filter-title-text" data-toggle>알그룹</span>
+                    <button class="filter-reset" data-group="egggroup">↺</button>
+                </div>
+                <div class="filter-body">
+                    <div class="chip-group" id="eggGroupChips"></div>
+                </div>
             </div>
-            <div class="filter-body">
-                <input type="text" id="abilityInput" class="filter-text-input" placeholder="특성 이름 검색">
-            </div>
-        </div>
 
-        <!-- 종족값 (접힘) -->
-        <div class="filter-group">
-            <div class="filter-title">
-                <span class="filter-title-text" data-toggle>종족값</span>
-                <button class="filter-reset" data-group="stats">↺</button>
+            <!-- 특성 (접힘) -->
+            <div class="filter-group">
+                <div class="filter-title">
+                    <span class="filter-title-text" data-toggle>특성</span>
+                    <button class="filter-reset" data-group="ability">↺</button>
+                </div>
+                <div class="filter-body">
+                    <input type="text" id="abilityInput" class="filter-text-input" placeholder="특성 이름 검색">
+                </div>
             </div>
-            <div class="filter-body">
-                <div class="stat-filter-grid">
-                    <div class="stat-filter-row">
-                        <span class="stat-filter-label">HP</span>
-                        <input type="number" class="stat-input" data-stat="hp" data-bound="min" placeholder="최소">
-                        <span class="stat-filter-sep">~</span>
-                        <input type="number" class="stat-input" data-stat="hp" data-bound="max" placeholder="최대">
-                    </div>
-                    <div class="stat-filter-row">
-                        <span class="stat-filter-label">공격</span>
-                        <input type="number" class="stat-input" data-stat="attack" data-bound="min" placeholder="최소">
-                        <span class="stat-filter-sep">~</span>
-                        <input type="number" class="stat-input" data-stat="attack" data-bound="max" placeholder="최대">
-                    </div>
-                    <div class="stat-filter-row">
-                        <span class="stat-filter-label">방어</span>
-                        <input type="number" class="stat-input" data-stat="defense" data-bound="min" placeholder="최소">
-                        <span class="stat-filter-sep">~</span>
-                        <input type="number" class="stat-input" data-stat="defense" data-bound="max" placeholder="최대">
-                    </div>
-                    <div class="stat-filter-row">
-                        <span class="stat-filter-label">특공</span>
-                        <input type="number" class="stat-input" data-stat="sp-attack" data-bound="min" placeholder="최소">
-                        <span class="stat-filter-sep">~</span>
-                        <input type="number" class="stat-input" data-stat="sp-attack" data-bound="max" placeholder="최대">
-                    </div>
-                    <div class="stat-filter-row">
-                        <span class="stat-filter-label">특방</span>
-                        <input type="number" class="stat-input" data-stat="sp-defense" data-bound="min" placeholder="최소">
-                        <span class="stat-filter-sep">~</span>
-                        <input type="number" class="stat-input" data-stat="sp-defense" data-bound="max" placeholder="최대">
-                    </div>
-                    <div class="stat-filter-row">
-                        <span class="stat-filter-label">스피드</span>
-                        <input type="number" class="stat-input" data-stat="speed" data-bound="min" placeholder="최소">
-                        <span class="stat-filter-sep">~</span>
-                        <input type="number" class="stat-input" data-stat="speed" data-bound="max" placeholder="최대">
-                    </div>
-                    <div class="stat-filter-row stat-total">
-                        <span class="stat-filter-label">합계</span>
-                        <input type="number" class="stat-input" data-stat="total" data-bound="min" placeholder="최소">
-                        <span class="stat-filter-sep">~</span>
-                        <input type="number" class="stat-input" data-stat="total" data-bound="max" placeholder="최대">
+
+            <!-- 종족값 (접힘) -->
+            <div class="filter-group">
+                <div class="filter-title">
+                    <span class="filter-title-text" data-toggle>종족값</span>
+                    <button class="filter-reset" data-group="stats">↺</button>
+                </div>
+                <div class="filter-body">
+                    <div class="stat-filter-grid">
+                        <div class="stat-filter-row">
+                            <span class="stat-filter-label">HP</span>
+                            <input type="number" class="stat-input" data-stat="hp" data-bound="min" placeholder="최소">
+                            <span class="stat-filter-sep">~</span>
+                            <input type="number" class="stat-input" data-stat="hp" data-bound="max" placeholder="최대">
+                        </div>
+                        <div class="stat-filter-row">
+                            <span class="stat-filter-label">공격</span>
+                            <input type="number" class="stat-input" data-stat="attack" data-bound="min" placeholder="최소">
+                            <span class="stat-filter-sep">~</span>
+                            <input type="number" class="stat-input" data-stat="attack" data-bound="max" placeholder="최대">
+                        </div>
+                        <div class="stat-filter-row">
+                            <span class="stat-filter-label">방어</span>
+                            <input type="number" class="stat-input" data-stat="defense" data-bound="min" placeholder="최소">
+                            <span class="stat-filter-sep">~</span>
+                            <input type="number" class="stat-input" data-stat="defense" data-bound="max" placeholder="최대">
+                        </div>
+                        <div class="stat-filter-row">
+                            <span class="stat-filter-label">특공</span>
+                            <input type="number" class="stat-input" data-stat="sp-attack" data-bound="min" placeholder="최소">
+                            <span class="stat-filter-sep">~</span>
+                            <input type="number" class="stat-input" data-stat="sp-attack" data-bound="max" placeholder="최대">
+                        </div>
+                        <div class="stat-filter-row">
+                            <span class="stat-filter-label">특방</span>
+                            <input type="number" class="stat-input" data-stat="sp-defense" data-bound="min" placeholder="최소">
+                            <span class="stat-filter-sep">~</span>
+                            <input type="number" class="stat-input" data-stat="sp-defense" data-bound="max" placeholder="최대">
+                        </div>
+                        <div class="stat-filter-row">
+                            <span class="stat-filter-label">스피드</span>
+                            <input type="number" class="stat-input" data-stat="speed" data-bound="min" placeholder="최소">
+                            <span class="stat-filter-sep">~</span>
+                            <input type="number" class="stat-input" data-stat="speed" data-bound="max" placeholder="최대">
+                        </div>
+                        <div class="stat-filter-row stat-total">
+                            <span class="stat-filter-label">합계</span>
+                            <input type="number" class="stat-input" data-stat="total" data-bound="min" placeholder="최소">
+                            <span class="stat-filter-sep">~</span>
+                            <input type="number" class="stat-input" data-stat="total" data-bound="max" placeholder="최대">
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 노력치 (접힘) -->
-        <div class="filter-group">
-            <div class="filter-title">
-                <span class="filter-title-text" data-toggle>노력치</span>
-                <button class="filter-reset" data-group="ev">↺</button>
-            </div>
-            <div class="filter-body">
-                <div class="chip-group" id="evChips"></div>
+            <!-- 노력치 (접힘) -->
+            <div class="filter-group">
+                <div class="filter-title">
+                    <span class="filter-title-text" data-toggle>노력치</span>
+                    <button class="filter-reset" data-group="ev">↺</button>
+                </div>
+                <div class="filter-body">
+                    <div class="chip-group" id="evChips"></div>
+                </div>
             </div>
         </div>
     </div>
