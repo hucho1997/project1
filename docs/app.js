@@ -58,33 +58,34 @@ const METHOD_KO = {
 
 // ─── 버전 그룹 정보 (기술 탭용) ───
 const VG_INFO = {
-    1: { name: '적·녹', gen: 1 }, 2: { name: '피카츄', gen: 1 },
-    3: { name: '금·은', gen: 2 }, 4: { name: '크리스탈', gen: 2 },
-    5: { name: '루비·사파이어', gen: 3 }, 6: { name: '에메랄드', gen: 3 },
-    7: { name: 'FR·LG', gen: 3 }, 12: { name: '콜로세움', gen: 3 }, 13: { name: 'XD', gen: 3 },
-    8: { name: '다이아·펄', gen: 4 }, 9: { name: '플라티나', gen: 4 }, 10: { name: 'HG·SS', gen: 4 },
-    11: { name: '블랙·화이트', gen: 5 }, 14: { name: 'B2·W2', gen: 5 },
-    15: { name: 'X·Y', gen: 6 }, 16: { name: 'OR·AS', gen: 6 },
-    17: { name: '썬·문', gen: 7 }, 18: { name: 'US·UM', gen: 7 }, 19: { name: '레츠고', gen: 7 },
-    20: { name: '소드·실드', gen: 8 }, 23: { name: 'BD·SP', gen: 8 }, 24: { name: 'LA', gen: 8 },
-    25: { name: '스칼렛·바이올렛', gen: 9 },
+    1: { name: 'RG', gen: 1 }, 2: { name: 'Y', gen: 1 },
+    3: { name: 'GS', gen: 2 }, 4: { name: 'C', gen: 2 },
+    5: { name: 'RS', gen: 3 }, 6: { name: 'E', gen: 3 },
+    7: { name: 'FRLG', gen: 3 }, 12: { name: 'Colo', gen: 3 }, 13: { name: 'XD', gen: 3 },
+    8: { name: 'DP', gen: 4 }, 9: { name: 'Pt', gen: 4 }, 10: { name: 'HGSS', gen: 4 },
+    11: { name: 'BW', gen: 5 }, 14: { name: 'B2W2', gen: 5 },
+    15: { name: 'XY', gen: 6 }, 16: { name: 'ORAS', gen: 6 },
+    17: { name: 'SM', gen: 7 }, 18: { name: 'USUM', gen: 7 }, 19: { name: 'LGPE', gen: 7 },
+    20: { name: 'SwSh', gen: 8 }, 23: { name: 'BDSP', gen: 8 }, 24: { name: 'PLA', gen: 8 },
+    25: { name: 'SV', gen: 9 },
 };
 
 // ─── 출현 버전 → 세대 매핑 ───
 const VERSION_GEN = {
-    'red': 1, 'blue': 1, 'yellow': 1,
+    'red': 1, 'blue': 1, 'yellow': 1, 'red-japan': 1, 'green-japan': 1,
     'gold': 2, 'silver': 2, 'crystal': 2,
     'ruby': 3, 'sapphire': 3, 'emerald': 3, 'firered': 3, 'leafgreen': 3,
     'diamond': 4, 'pearl': 4, 'platinum': 4, 'heartgold': 4, 'soulsilver': 4,
     'black': 5, 'white': 5, 'black-2': 5, 'white-2': 5,
     'x': 6, 'y': 6, 'omega-ruby': 6, 'alpha-sapphire': 6,
-    'sun': 7, 'moon': 7, 'ultra-sun': 7, 'ultra-moon': 7,
+    'sun': 7, 'moon': 7, 'ultra-sun': 7, 'ultra-moon': 7, 'lets-go-pikachu': 7, 'lets-go-eevee': 7,
     'sword': 8, 'shield': 8,
     'scarlet': 9, 'violet': 9,
 };
 
 const VERSION_KO = {
     'red': '레드', 'blue': '블루', 'yellow': '옐로',
+    'red-japan': '레드(JP)', 'green-japan': '그린(JP)',
     'gold': '골드', 'silver': '실버', 'crystal': '크리스탈',
     'ruby': '루비', 'sapphire': '사파이어', 'emerald': '에메랄드',
     'firered': '파이어레드', 'leafgreen': '리프그린',
@@ -93,6 +94,7 @@ const VERSION_KO = {
     'black': '블랙', 'white': '화이트', 'black-2': '블랙2', 'white-2': '화이트2',
     'x': 'X', 'y': 'Y', 'omega-ruby': 'OR', 'alpha-sapphire': 'AS',
     'sun': '썬', 'moon': '문', 'ultra-sun': 'US', 'ultra-moon': 'UM',
+    'lets-go-pikachu': 'LGP', 'lets-go-eevee': 'LGE',
     'sword': '소드', 'shield': '실드',
     'scarlet': '스칼렛', 'violet': '바이올렛',
 };
